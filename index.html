@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Thread Revolution — Java 21+ & Spring Boot</title>
+    <style>
+        /* ───────────────── Variables ───────────────── */
+        :root {
+            --bg: #0a0a1a;
+            --bg-light: #10102a;
+            --bg-card: #161638;
+            --bg-code: #1a1a3e;
+            --text: #c0c0d0;
+            --text-bright: #f0f0ff;
+            --text-dim: #606080;
+            --border: #2a2a4a;
+
+            --cyan: #00d4ff;
+            --purple: #a855f7;
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --blue: #3b82f6;
+            --gray: #4b5563;
+
+            --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+        }
+
+        /* ───────────────── Reset & Base ───────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 18px;
+            overflow-x: hidden;
+        }
+
+        /* ───────────────── Progress Bar ───────────────── */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--green));
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.1s linear;
+        }
+
+        /* ───────────────── Nav Dots ───────────────── */
+        .nav-dots {
+            position: fixed;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--text-dim);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .nav-dot.active {
+            border-color: var(--cyan);
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+        }
+
+        /* ───────────────── Layout ───────────────── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 100px 0;
+        }
+        .scene {
+            padding: 80px 0;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .scene.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ───────────────── Typography ───────────────── */
+        h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 800;
+            color: var(--text-bright);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+        h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--text-bright);
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 12px;
+        }
+        .eyebrow {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        .narrative {
+            font-size: 1.15rem;
+            max-width: 680px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+        .narrative strong { color: var(--text-bright); }
+
+        /* ───────────────── Hero ───────────────── */
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        #hero .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        #hero .eyebrow { color: var(--cyan); }
+        #hero h1 span {
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .scroll-hint {
+            margin-top: 60px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            animation: float 2s ease-in-out infinite;
+        }
+        .scroll-hint .arrow {
+            display: inline-block;
+            margin-top: 8px;
+            width: 20px;
+            height: 20px;
+            border-right: 2px solid var(--text-dim);
+            border-bottom: 2px solid var(--text-dim);
+            transform: rotate(45deg);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        /* ───────────────── Background Grid ───────────────── */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ───────────────── Act Headers ───────────────── */
+        .act-header {
+            margin-bottom: 60px;
+        }
+        .act-number {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        .act-1 .act-number { color: var(--cyan); border: 1px solid rgba(0, 212, 255, 0.3); }
+        .act-2 .act-number { color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .act-3 .act-number { color: var(--green); border: 1px solid rgba(34, 197, 94, 0.3); }
+
+        /* ───────────────── Diagrams ───────────────── */
+        .diagram {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            margin: 32px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .diagram-label {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .label-problem {
+            color: var(--red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .label-solution {
+            color: var(--green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        /* ───────────────── Thread Boxes ───────────────── */
+        .thread-row {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+        .thread-box {
+            width: 140px;
+            height: 160px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.6s ease;
+            position: relative;
+        }
+        .thread-box .thread-name {
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+        .thread-box .thread-status {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 8px;
+            margin-top: 8px;
+            transition: all 0.4s ease;
+        }
+
+        /* Platform thread states */
+        .thread-platform {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--amber);
+        }
+        .thread-platform .thread-status {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--amber);
+        }
+        .thread-platform.blocked {
+            background: linear-gradient(135deg, rgba(75, 85, 99, 0.2), rgba(75, 85, 99, 0.05));
+            border-color: rgba(75, 85, 99, 0.4);
+            color: var(--gray);
+        }
+        .thread-platform.blocked .thread-status {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+        }
+
+        /* Carrier thread */
+        .thread-carrier {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: var(--blue);
+            height: 100px;
+        }
+        .thread-carrier .thread-status {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--green);
+        }
+
+        /* Queue animation */
+        .request-queue {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 24px;
+            min-height: 30px;
+            flex-wrap: wrap;
+        }
+        .request-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--red);
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+        .request-dot.visible {
+            opacity: 0.7;
+            transform: scale(1);
+        }
+        .queue-label {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--red);
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .queue-label.visible { opacity: 1; }
+
+        /* Virtual threads (floating circles) */
+        .vt-cloud {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            min-height: 50px;
+        }
+        .vt-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+            animation: none;
+        }
+        .vt-dot.visible {
+            opacity: 0.8;
+            transform: scale(1);
+        }
+        .vt-dot.visible.animate {
+            animation: vtFloat 3s ease-in-out infinite;
+        }
+        @keyframes vtFloat {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-6px) scale(1.05); }
+        }
+        .vt-connector {
+            text-align: center;
+            color: var(--cyan);
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            opacity: 0;
+            transition: opacity 0.4s ease 0.5s;
+        }
+        .vt-connector.visible { opacity: 0.5; }
+
+        /* Mount/unmount animation overlay */
+        .mount-animation {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--cyan);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Stats counter */
+        .stats-row {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            margin-top: 32px;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* ───────────────── Scoped Values Diagrams ───────────────── */
+        .scope-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin-top: 40px;
+        }
+        .tl-parent, .sv-source {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            position: relative;
+        }
+        .tl-parent {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--amber);
+        }
+        .sv-source {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: var(--purple);
+        }
+        .scope-children {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .scope-child {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.4s ease;
+        }
+        .scope-child.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .tl-child {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px dashed rgba(245, 158, 11, 0.3);
+            color: var(--amber);
+        }
+        .tl-child.mutated {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: var(--red);
+            transition: all 0.4s ease 0.3s;
+        }
+        .copy-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 0.55rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--amber);
+            color: var(--bg);
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .copy-badge.visible { opacity: 1; }
+        .mutate-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 0.55rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--red);
+            color: white;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .mutate-badge.visible { opacity: 1; }
+
+        .sv-child {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            color: var(--purple);
+        }
+        .scope-boundary {
+            border: 2px dashed rgba(168, 85, 247, 0.3);
+            border-radius: 16px;
+            padding: 30px 24px 24px;
+            position: relative;
+            margin-top: 40px;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        .scope-boundary.visible { opacity: 1; }
+        .scope-boundary-label {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: var(--purple);
+            background: var(--bg-light);
+            padding: 2px 10px;
+        }
+        .scope-immutable {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--green);
+            margin-top: 16px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .scope-immutable.visible { opacity: 1; }
+
+        /* Connector lines (vertical) */
+        .connector-down {
+            width: 2px;
+            height: 24px;
+            margin: 0 auto;
+            opacity: 0;
+            transition: opacity 0.3s ease, height 0.3s ease;
+        }
+        .connector-down.visible { opacity: 0.5; }
+        .connector-tl { background: var(--amber); }
+        .connector-sv { background: var(--purple); }
+
+        /* ───────────────── Structured Concurrency ───────────────── */
+        .task-diagram {
+            position: relative;
+            min-height: 250px;
+            margin-top: 40px;
+        }
+        .task-parent {
+            width: 120px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 0 auto 0;
+            position: relative;
+            z-index: 2;
+        }
+        .task-parent-unstructured {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--amber);
+        }
+        .task-parent-structured {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--green);
+        }
+        .task-children {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        .task-child {
+            width: 110px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.5s ease;
+            position: relative;
+        }
+        .task-unstructured {
+            background: rgba(100, 100, 120, 0.15);
+            border: 1px solid rgba(100, 100, 120, 0.3);
+            color: var(--text);
+        }
+        .task-structured {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: var(--green);
+        }
+        .task-child.failed {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: var(--red);
+        }
+        .task-child.cancelled {
+            opacity: 0.3;
+            transform: scale(0.95);
+        }
+        .task-child.leaked {
+            opacity: 0.5;
+        }
+        .task-child .task-icon {
+            font-size: 1.2rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .task-status-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 0.6rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .task-status-badge.visible { opacity: 1; }
+        .badge-failed { background: var(--red); color: white; }
+        .badge-leaked { background: var(--amber); color: var(--bg); }
+        .badge-cancelled { background: var(--gray); color: white; }
+        .badge-ok { background: var(--green); color: white; }
+
+        /* Tree lines for structured concurrency */
+        .tree-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .tree-line {
+            stroke: var(--green);
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            transition: stroke-dashoffset 0.8s ease, stroke 0.4s ease;
+        }
+        .tree-line.visible { stroke-dashoffset: 0; }
+        .tree-line.error { stroke: var(--red); }
+
+        /* Drift animation for unstructured leaked tasks */
+        @keyframes drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 15px); opacity: 0.3; }
+        }
+        .task-child.drifting {
+            animation: drift 3s ease-in-out forwards;
+        }
+        .task-parent-unstructured .parent-question {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 1.2rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .task-parent-unstructured .parent-question.visible { opacity: 1; }
+
+        /* ───────────────── Code Blocks ───────────────── */
+        .code-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 32px 0;
+        }
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-block pre {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+        .code-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .code-label-old { color: var(--red); }
+        .code-label-new { color: var(--green); }
+        .code-label-spring { color: var(--cyan); }
+
+        /* Syntax highlighting (minimal) */
+        .kw { color: var(--purple); }
+        .fn { color: var(--cyan); }
+        .str { color: var(--green); }
+        .cm { color: var(--text-dim); font-style: italic; }
+        .num { color: var(--amber); }
+        .ann { color: var(--amber); }
+        .type { color: var(--cyan); }
+
+        /* ───────────────── Spring Boot Section ───────────────── */
+        .spring-callout {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(0, 212, 255, 0.08));
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 16px;
+            padding: 32px;
+            margin: 40px 0;
+            position: relative;
+        }
+        .spring-callout h3 {
+            color: var(--green);
+        }
+        .spring-callout .spring-logo {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        .spring-versions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .spring-version {
+            padding: 16px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .spring-version .version-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .spring-version pre {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* ───────────────── Divider ───────────────── */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 40px 0;
+        }
+
+        /* ───────────────── Conclusion ───────────────── */
+        .synergy-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 40px 0;
+        }
+        .synergy-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+        .synergy-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .synergy-card h3 { font-size: 1.1rem; margin-top: 12px; }
+        .synergy-card p { font-size: 0.85rem; color: var(--text-dim); margin-top: 8px; }
+        .synergy-icon { font-size: 2rem; }
+
+        /* ───────────────── Timeline ───────────────── */
+        .timeline {
+            margin: 40px 0;
+            position: relative;
+            padding-left: 32px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.4s ease;
+        }
+        .timeline-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -28px;
+            top: 6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--cyan);
+            background: var(--bg);
+        }
+        .timeline-item .tl-date {
+            font-size: 0.75rem;
+            color: var(--cyan);
+            font-weight: 600;
+        }
+        .timeline-item .tl-text {
+            font-size: 0.9rem;
+        }
+
+        /* ───────────────── Responsive ───────────────── */
+        @media (max-width: 768px) {
+            .container { padding: 0 20px; }
+            section { padding: 60px 0; }
+            .code-comparison { grid-template-columns: 1fr; }
+            .synergy-grid { grid-template-columns: 1fr; }
+            .spring-versions { grid-template-columns: 1fr; }
+            .thread-box { width: 110px; height: 130px; }
+            .nav-dots { display: none; }
+            .diagram { padding: 24px 16px; }
+        }
+
+        /* ───────────────── Conclusion Summary ───────────────── */
+        .summary-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 32px 0;
+            font-size: 0.85rem;
+        }
+        .summary-table th {
+            text-align: left;
+            padding: 12px 16px;
+            color: var(--text-bright);
+            border-bottom: 2px solid var(--border);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .summary-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(42, 42, 74, 0.5);
+        }
+        .summary-table tr:last-child td { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<nav class="nav-dots" id="navDots">
+    <div class="nav-dot active" data-target="hero" title="Intro"></div>
+    <div class="nav-dot" data-target="context" title="Context"></div>
+    <div class="nav-dot" data-target="act1" title="Virtual Threads"></div>
+    <div class="nav-dot" data-target="act2" title="Scoped Values"></div>
+    <div class="nav-dot" data-target="act3" title="Structured Concurrency"></div>
+    <div class="nav-dot" data-target="spring" title="Spring Boot"></div>
+    <div class="nav-dot" data-target="conclusion" title="Conclusion"></div>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section id="hero">
+    <div class="hero-content">
+        <p class="eyebrow">Java 21+ &middot; Project Loom &middot; Spring Boot</p>
+        <h1>The Thread<br><span>Revolution</span></h1>
+        <p class="subtitle">Virtual Threads, Scoped Values, and Structured Concurrency — three primitives that fundamentally change how Java handles concurrent work.</p>
+        <div class="scroll-hint">
+            <span>Scroll to explore</span><br>
+            <div class="arrow"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ CONTEXT ═══════════════ -->
+<section id="context">
+    <div class="container">
+        <div class="scene" data-scene>
+            <p class="eyebrow" style="color: var(--text-dim);">The backstory</p>
+            <h2>25 years of heavyweight threads</h2>
+            <div class="narrative" style="margin-top: 24px;">
+                <p>Since Java 1.0, every <code>Thread</code> has been a thin wrapper around an <strong>OS thread</strong>. Each one allocates ~1 MB of stack memory and requires a kernel-level context switch. That was fine in 1998 when a server handled dozens of requests. It's a problem now, when a single microservice might need to handle <strong>tens of thousands of concurrent connections</strong>.</p>
+                <p style="margin-top: 16px;">The workarounds — thread pools, reactive programming, async/await patterns — add complexity without solving the root problem: <strong>platform threads are too expensive to represent every unit of concurrent work</strong>.</p>
+                <p style="margin-top: 16px;">Project Loom, delivered in Java 21, introduces three new primitives that fix this from the ground up.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ ACT 1: VIRTUAL THREADS ═══════════════ -->
+<div id="act1" class="container act-1">
+
+    <!-- Problem -->
+    <div class="scene" data-scene>
+        <div class="act-header">
+            <span class="act-number">Part 1</span>
+            <h2>Virtual Threads</h2>
+            <p class="subtitle">Lightweight threads managed by the JVM, not the OS.</p>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>The Old Way: Platform Thread Pool</h3>
+        <p style="max-width: 680px;">Your server has a fixed pool of platform threads (typically 200). Each incoming request claims one. When a thread blocks on I/O — a database query, an HTTP call — it sits idle. The thread is stuck, and so is every request waiting behind it.</p>
+
+        <div class="diagram" id="platformThreadDemo">
+            <span class="diagram-label label-problem">The problem</span>
+            <div class="thread-row" id="platformThreads">
+                <div class="thread-box thread-platform" data-block-delay="1500">
+                    <span class="thread-name">Thread-1</span>
+                    <div class="thread-icon">&#9632;</div>
+                    <div class="thread-status">Processing</div>
+                </div>
+                <div class="thread-box thread-platform" data-block-delay="800">
+                    <span class="thread-name">Thread-2</span>
+                    <div class="thread-icon">&#9632;</div>
+                    <div class="thread-status">Processing</div>
+                </div>
+                <div class="thread-box thread-platform" data-block-delay="2000">
+                    <span class="thread-name">Thread-3</span>
+                    <div class="thread-icon">&#9632;</div>
+                    <div class="thread-status">Processing</div>
+                </div>
+                <div class="thread-box thread-platform" data-block-delay="1200">
+                    <span class="thread-name">Thread-4</span>
+                    <div class="thread-icon">&#9632;</div>
+                    <div class="thread-status">Processing</div>
+                </div>
+            </div>
+            <div class="request-queue" id="requestQueue">
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+                <div class="request-dot"></div>
+            </div>
+            <div class="queue-label" id="queueLabel">&#9888; 12 requests waiting &mdash; threads blocked on I/O</div>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>The New Way: Virtual Threads</h3>
+        <p style="max-width: 680px;">Virtual threads are managed by the JVM, not the OS. They're <strong>extremely cheap</strong> — you can create millions of them. When a virtual thread blocks on I/O, it <strong>unmounts</strong> from its carrier thread. The carrier immediately picks up another virtual thread. No thread ever sits idle.</p>
+
+        <div class="diagram" id="virtualThreadDemo">
+            <span class="diagram-label label-solution">The solution</span>
+
+            <div class="vt-cloud" id="vtCloud">
+                <div class="vt-dot" style="animation-delay: 0s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.3s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.1s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.5s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.2s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.7s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.4s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.8s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.15s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.6s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.35s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.9s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.25s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.55s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.45s;"></div>
+                <div class="vt-dot" style="animation-delay: 0.75s;"></div>
+            </div>
+            <div class="vt-connector" id="vtConnector">&#x25BC; mounted on carriers &#x25BC;</div>
+            <div class="thread-row" id="carrierThreads">
+                <div class="thread-box thread-carrier">
+                    <span class="thread-name">Carrier-1</span>
+                    <div class="thread-status">Always busy</div>
+                </div>
+                <div class="thread-box thread-carrier">
+                    <span class="thread-name">Carrier-2</span>
+                    <div class="thread-status">Always busy</div>
+                </div>
+                <div class="thread-box thread-carrier">
+                    <span class="thread-name">Carrier-3</span>
+                    <div class="thread-status">Always busy</div>
+                </div>
+                <div class="thread-box thread-carrier">
+                    <span class="thread-name">Carrier-4</span>
+                    <div class="thread-status">Always busy</div>
+                </div>
+            </div>
+
+            <div class="stats-row" id="vtStats">
+                <div class="stat">
+                    <div class="stat-value" style="color: var(--cyan);" data-count-to="10000" data-count-from="0">0</div>
+                    <div class="stat-label">Concurrent tasks</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" style="color: var(--green);" data-count-to="0" data-count-from="0">0</div>
+                    <div class="stat-label">Requests waiting</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" style="color: var(--amber);">~1 KB</div>
+                    <div class="stat-label">Memory per thread</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>The code is simpler, not harder</h3>
+        <p style="max-width: 680px; margin-bottom: 16px;">Virtual threads use the same <code>Thread</code> API you already know. No new abstractions, no reactive chains, no callbacks. Write blocking code — the JVM handles the rest.</p>
+        <div class="code-comparison">
+            <div class="code-block">
+                <span class="code-label code-label-old">Before &mdash; thread pool</span>
+<pre><span class="kw">var</span> pool = Executors.<span class="fn">newFixedThreadPool</span>(<span class="num">200</span>);
+
+<span class="kw">for</span> (<span class="kw">var</span> request : requests) {
+    pool.<span class="fn">submit</span>(() -> {
+        <span class="cm">// blocks a platform thread</span>
+        <span class="kw">var</span> user = db.<span class="fn">findUser</span>(request.id());
+        <span class="kw">var</span> orders = api.<span class="fn">getOrders</span>(user);
+        <span class="kw">return</span> <span class="fn">buildResponse</span>(user, orders);
+    });
+}</pre>
+            </div>
+            <div class="code-block">
+                <span class="code-label code-label-new">After &mdash; virtual threads</span>
+<pre><span class="kw">try</span> (<span class="kw">var</span> executor = Executors.<span class="fn">newVirtualThreadPerTaskExecutor</span>()) {
+
+    <span class="kw">for</span> (<span class="kw">var</span> request : requests) {
+        executor.<span class="fn">submit</span>(() -> {
+            <span class="cm">// same blocking code, but on a virtual thread</span>
+            <span class="kw">var</span> user = db.<span class="fn">findUser</span>(request.id());
+            <span class="kw">var</span> orders = api.<span class="fn">getOrders</span>(user);
+            <span class="kw">return</span> <span class="fn">buildResponse</span>(user, orders);
+        });
+    }
+}</pre>
+            </div>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-dim); max-width: 680px;">The only change: <code>newFixedThreadPool(200)</code> becomes <code>newVirtualThreadPerTaskExecutor()</code>. No pool size to tune. No thread starvation. One virtual thread per task, as many as you need.</p>
+    </div>
+
+    <div class="section-divider"></div>
+</div>
+
+<!-- ═══════════════ ACT 2: SCOPED VALUES ═══════════════ -->
+<div id="act2" class="container act-2">
+
+    <div class="scene" data-scene>
+        <div class="act-header">
+            <span class="act-number">Part 2</span>
+            <h2>Scoped Values</h2>
+            <p class="subtitle">Immutable, scoped data sharing across threads — replacing ThreadLocal.</p>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>The Old Way: ThreadLocal</h3>
+        <p style="max-width: 680px;"><code>ThreadLocal</code> stores per-thread data. When you spawn child threads, values get <strong>copied</strong> to each child. Those copies are independent — they can be mutated separately, leading to stale data. And with virtual threads creating thousands of threads, those copies add up fast.</p>
+
+        <div class="diagram" id="threadLocalDemo">
+            <span class="diagram-label label-problem">The problem</span>
+            <div class="scope-diagram">
+                <div class="tl-parent" style="position: relative;">
+                    ThreadLocal&lt;User&gt; = "Alice"
+                </div>
+                <div class="connector-down connector-tl" id="tlConnector"></div>
+                <div class="scope-children" id="tlChildren">
+                    <div class="scope-child tl-child" style="position: relative; transition-delay: 0.2s;">
+                        Child-1: "Alice"
+                        <span class="copy-badge">COPY</span>
+                    </div>
+                    <div class="scope-child tl-child" style="position: relative; transition-delay: 0.4s;">
+                        Child-2: "Alice"
+                        <span class="copy-badge">COPY</span>
+                    </div>
+                    <div class="scope-child tl-child" id="mutatedChild" style="position: relative; transition-delay: 0.6s;">
+                        Child-3: <span id="mutatedValue">"Alice"</span>
+                        <span class="mutate-badge">MUTATED</span>
+                    </div>
+                </div>
+                <div class="queue-label" id="tlWarning" style="color: var(--red); margin-top: 16px;">
+                    &#9888; Child-3 mutated its copy &mdash; other threads still see "Alice". Who's right?
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>The New Way: ScopedValue</h3>
+        <p style="max-width: 680px;"><code>ScopedValue</code> binds a value for the duration of a scope. It's <strong>immutable</strong> within that scope — no thread can change it. Child threads see the parent's value directly, <strong>no copying</strong>. When the scope ends, the value is gone — no cleanup, no leaks.</p>
+
+        <div class="diagram" id="scopedValueDemo">
+            <span class="diagram-label label-solution">The solution</span>
+            <div class="scope-boundary" id="scopeBoundary">
+                <span class="scope-boundary-label">ScopedValue.where(USER, "Alice").run(() -> { ... })</span>
+                <div class="scope-diagram">
+                    <div class="sv-source">
+                        USER = "Alice" &nbsp;&nbsp;&#x1F512;
+                    </div>
+                    <div class="connector-down connector-sv" id="svConnector"></div>
+                    <div class="scope-children" id="svChildren">
+                        <div class="scope-child sv-child" style="transition-delay: 0.3s;">
+                            Thread-1 reads: "Alice"
+                        </div>
+                        <div class="scope-child sv-child" style="transition-delay: 0.5s;">
+                            Thread-2 reads: "Alice"
+                        </div>
+                        <div class="scope-child sv-child" style="transition-delay: 0.7s;">
+                            Thread-3 reads: "Alice"
+                        </div>
+                    </div>
+                    <div class="scope-immutable" id="svImmutable">
+                        &#10003; Immutable &mdash; no thread can modify the value &nbsp;&nbsp;|&nbsp;&nbsp; &#10003; No copies &mdash; zero allocation overhead
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <div class="code-comparison">
+            <div class="code-block">
+                <span class="code-label code-label-old">Before &mdash; ThreadLocal</span>
+<pre><span class="kw">static final</span> <span class="type">ThreadLocal</span>&lt;User&gt; CURRENT_USER =
+    <span class="kw">new</span> <span class="type">ThreadLocal</span>&lt;&gt;();
+
+<span class="kw">void</span> <span class="fn">handleRequest</span>(Request req) {
+    CURRENT_USER.<span class="fn">set</span>(req.<span class="fn">user</span>());
+    <span class="kw">try</span> {
+        <span class="fn">processOrder</span>();
+        <span class="cm">// any thread can call CURRENT_USER.set()</span>
+        <span class="cm">// child threads get independent copies</span>
+        <span class="cm">// forgetting remove() → memory leak</span>
+    } <span class="kw">finally</span> {
+        CURRENT_USER.<span class="fn">remove</span>(); <span class="cm">// easy to forget!</span>
+    }
+}</pre>
+            </div>
+            <div class="code-block">
+                <span class="code-label code-label-new">After &mdash; ScopedValue</span>
+<pre><span class="kw">static final</span> <span class="type">ScopedValue</span>&lt;User&gt; CURRENT_USER =
+    <span class="type">ScopedValue</span>.<span class="fn">newInstance</span>();
+
+<span class="kw">void</span> <span class="fn">handleRequest</span>(Request req) {
+    <span class="type">ScopedValue</span>.<span class="fn">where</span>(CURRENT_USER, req.<span class="fn">user</span>())
+        .<span class="fn">run</span>(() -> {
+            <span class="fn">processOrder</span>();
+            <span class="cm">// immutable — can't be changed</span>
+            <span class="cm">// child threads share the binding</span>
+            <span class="cm">// auto-cleanup when scope exits</span>
+        });
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+</div>
+
+<!-- ═══════════════ ACT 3: STRUCTURED CONCURRENCY ═══════════════ -->
+<div id="act3" class="container act-3">
+
+    <div class="scene" data-scene>
+        <div class="act-header">
+            <span class="act-number">Part 3</span>
+            <h2>Structured Concurrency</h2>
+            <p class="subtitle">Concurrent tasks as a single unit of work — no leaks, no orphans.</p>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>The Old Way: Fire and Forget</h3>
+        <p style="max-width: 680px;">With <code>ExecutorService</code>, you submit tasks into the void. If one fails, you might not notice until later. If the parent is done but a child is still running, that's a thread leak. Cancellation? You have to do it yourself — and you'll probably miss some.</p>
+
+        <div class="diagram" id="unstructuredDemo">
+            <span class="diagram-label label-problem">The problem</span>
+            <div class="task-diagram">
+                <div class="task-parent task-parent-unstructured">
+                    main()
+                    <span class="parent-question" id="parentQuestion">&#10067;</span>
+                </div>
+                <div class="task-children" id="unstructuredTasks">
+                    <div class="task-child task-unstructured" id="uTask1">
+                        <span class="task-icon">&#9881;</span>
+                        Task A
+                        <span class="task-status-badge badge-ok">OK</span>
+                    </div>
+                    <div class="task-child task-unstructured" id="uTask2">
+                        <span class="task-icon">&#9881;</span>
+                        Task B
+                        <span class="task-status-badge badge-failed">FAILED</span>
+                    </div>
+                    <div class="task-child task-unstructured" id="uTask3">
+                        <span class="task-icon">&#9881;</span>
+                        Task C
+                        <span class="task-status-badge badge-leaked">LEAKED</span>
+                    </div>
+                </div>
+            </div>
+            <div class="queue-label" id="unstructuredWarning" style="color: var(--red);">
+                &#9888; Task B failed silently &mdash; Task C is still running, consuming resources &mdash; nobody is watching
+            </div>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>The New Way: StructuredTaskScope</h3>
+        <p style="max-width: 680px;"><code>StructuredTaskScope</code> treats concurrent tasks like a structured block: all forked tasks must complete before the scope exits. If one fails, the others are <strong>automatically cancelled</strong>. Errors propagate to the parent. No leaks. No orphans. The concurrent equivalent of a try-with-resources.</p>
+
+        <div class="diagram" id="structuredDemo" style="position: relative;">
+            <span class="diagram-label label-solution">The solution</span>
+            <svg class="tree-svg" id="treeSvg" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
+                <line class="tree-line" id="treeLine1" x1="400" y1="45" x2="250" y2="140" />
+                <line class="tree-line" id="treeLine2" x1="400" y1="45" x2="400" y2="140" />
+                <line class="tree-line" id="treeLine3" x1="400" y1="45" x2="550" y2="140" />
+            </svg>
+            <div class="task-diagram">
+                <div class="task-parent task-parent-structured">
+                    scope.join()
+                </div>
+                <div class="task-children" id="structuredTasks">
+                    <div class="task-child task-structured" id="sTask1">
+                        <span class="task-icon">&#9881;</span>
+                        fork(A)
+                        <span class="task-status-badge badge-ok">OK</span>
+                    </div>
+                    <div class="task-child task-structured" id="sTask2">
+                        <span class="task-icon">&#9881;</span>
+                        fork(B)
+                        <span class="task-status-badge badge-failed">FAILED</span>
+                    </div>
+                    <div class="task-child task-structured" id="sTask3">
+                        <span class="task-icon">&#9881;</span>
+                        fork(C)
+                        <span class="task-status-badge badge-cancelled">CANCELLED</span>
+                    </div>
+                </div>
+            </div>
+            <div class="queue-label" id="structuredInfo" style="color: var(--green);">
+                &#10003; Task B failed &rarr; Task C auto-cancelled &rarr; error propagated to parent &rarr; scope exited cleanly
+            </div>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <div class="code-comparison">
+            <div class="code-block">
+                <span class="code-label code-label-old">Before &mdash; unstructured</span>
+<pre><span class="kw">var</span> pool = Executors.<span class="fn">newFixedThreadPool</span>(<span class="num">3</span>);
+
+<span class="type">Future</span>&lt;User&gt;    userF = pool.<span class="fn">submit</span>(() -> <span class="fn">fetchUser</span>());
+<span class="type">Future</span>&lt;Order&gt;   orderF = pool.<span class="fn">submit</span>(() -> <span class="fn">fetchOrder</span>());
+<span class="type">Future</span>&lt;Invoice&gt; invoiceF = pool.<span class="fn">submit</span>(() -> <span class="fn">fetchInvoice</span>());
+
+<span class="cm">// if fetchOrder() fails...</span>
+<span class="cm">// fetchUser() and fetchInvoice() keep running</span>
+<span class="cm">// we have to manually cancel them</span>
+<span class="cm">// and we might forget</span>
+<span class="kw">var</span> user = userF.<span class="fn">get</span>();     <span class="cm">// blocks, ignoring error</span>
+<span class="kw">var</span> order = orderF.<span class="fn">get</span>();   <span class="cm">// throws here!</span>
+<span class="kw">var</span> invoice = invoiceF.<span class="fn">get</span>(); <span class="cm">// still running...</span></pre>
+            </div>
+            <div class="code-block">
+                <span class="code-label code-label-new">After &mdash; structured</span>
+<pre><span class="kw">try</span> (<span class="kw">var</span> scope = <span class="kw">new</span> <span class="type">StructuredTaskScope</span>.<span class="fn">ShutdownOnFailure</span>()) {
+
+    <span class="type">Subtask</span>&lt;User&gt;    user = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchUser</span>());
+    <span class="type">Subtask</span>&lt;Order&gt;   order = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchOrder</span>());
+    <span class="type">Subtask</span>&lt;Invoice&gt; invoice = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchInvoice</span>());
+
+    scope.<span class="fn">join</span>();            <span class="cm">// waits for all</span>
+    scope.<span class="fn">throwIfFailed</span>();   <span class="cm">// propagates first error</span>
+    <span class="cm">// if fetchOrder() fails →</span>
+    <span class="cm">// fetchUser() + fetchInvoice() auto-cancelled</span>
+    <span class="cm">// scope exits, everything cleaned up</span>
+
+    <span class="kw">return</span> <span class="fn">build</span>(user.<span class="fn">get</span>(), order.<span class="fn">get</span>(), invoice.<span class="fn">get</span>());
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+</div>
+
+<!-- ═══════════════ SPRING BOOT ═══════════════ -->
+<div id="spring" class="container">
+
+    <div class="scene" data-scene>
+        <div class="act-header">
+            <span class="act-number" style="color: var(--green); border-color: rgba(34, 197, 94, 0.3);">Spring Boot</span>
+            <h2>This isn't theoretical</h2>
+            <p class="subtitle">If you use Spring Boot, virtual threads are already part of your stack.</p>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <div class="spring-callout">
+            <div class="spring-logo">&#9881;</div>
+            <h3>Spring Boot & Virtual Threads</h3>
+            <p style="margin-top: 12px; max-width: 680px;">Spring Boot adopted virtual threads early. Every request handler, every <code>@Async</code> method, every scheduled task — all running on virtual threads. Your existing blocking code (JPA queries, REST calls, JDBC) works as-is, but now scales to thousands of concurrent requests without reactive complexity.</p>
+
+            <div class="spring-versions">
+                <div class="spring-version">
+                    <span class="version-label" style="color: var(--amber);">Spring Boot 3.2 (2023)</span>
+<pre><span class="cm"># application.properties</span>
+<span class="fn">spring.threads.virtual.enabled</span>=<span class="str">true</span>
+
+<span class="cm">// Opt-in: one line of config
+// Tomcat, Jetty, Undertow all supported
+// @Async uses virtual threads
+// All blocking I/O benefits immediately</span></pre>
+                </div>
+                <div class="spring-version">
+                    <span class="version-label" style="color: var(--green);">Spring Boot 4 (2025)</span>
+<pre><span class="cm"># No configuration needed</span>
+
+<span class="cm">// Virtual threads are the DEFAULT
+// Every request handler runs on a
+//   virtual thread automatically
+// Thread pool tuning? Gone.
+// Reactive just for throughput? Gone.</span></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scene" data-scene>
+        <h3>What this means for your code</h3>
+        <div class="code-comparison">
+            <div class="code-block">
+                <span class="code-label code-label-old">What people did for scale</span>
+<pre><span class="cm">// Reactive style — necessary evil for throughput</span>
+<span class="ann">@GetMapping</span>(<span class="str">"/orders/{id}"</span>)
+<span class="type">Mono</span>&lt;Order&gt; <span class="fn">getOrder</span>(<span class="ann">@PathVariable</span> <span class="type">String</span> id) {
+    <span class="kw">return</span> userClient.<span class="fn">findById</span>(id)
+        .<span class="fn">flatMap</span>(user ->
+            orderClient.<span class="fn">findByUser</span>(user)
+                .<span class="fn">zipWith</span>(invoiceClient.<span class="fn">findByUser</span>(user))
+        )
+        .<span class="fn">map</span>(tuple -> <span class="fn">buildOrder</span>(tuple));
+    <span class="cm">// Hard to read, hard to debug,</span>
+    <span class="cm">// stack traces are useless</span>
+}</pre>
+            </div>
+            <div class="code-block">
+                <span class="code-label code-label-new">What you can write now</span>
+<pre><span class="cm">// Blocking style — same throughput, virtual threads</span>
+<span class="ann">@GetMapping</span>(<span class="str">"/orders/{id}"</span>)
+<span class="type">Order</span> <span class="fn">getOrder</span>(<span class="ann">@PathVariable</span> <span class="type">String</span> id) {
+    <span class="kw">var</span> user = userClient.<span class="fn">findById</span>(id);
+    <span class="kw">var</span> order = orderClient.<span class="fn">findByUser</span>(user);
+    <span class="kw">var</span> invoice = invoiceClient.<span class="fn">findByUser</span>(user);
+
+    <span class="kw">return</span> <span class="fn">buildOrder</span>(user, order, invoice);
+    <span class="cm">// Easy to read, easy to debug,</span>
+    <span class="cm">// full stack traces work</span>
+}</pre>
+            </div>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-dim); max-width: 680px;">Same throughput. Readable code. Real stack traces. Debuggable. Testable. No reactive library needed for I/O-bound workloads.</p>
+    </div>
+
+    <div class="section-divider"></div>
+</div>
+
+<!-- ═══════════════ CONCLUSION ═══════════════ -->
+<section id="conclusion">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="act-header" style="text-align: center;">
+                <h2>Three primitives, one coherent model</h2>
+                <p class="subtitle" style="margin: 12px auto 0;">They're designed to work together.</p>
+            </div>
+        </div>
+
+        <div class="scene" data-scene>
+            <div class="synergy-grid" id="synergyGrid">
+                <div class="synergy-card" style="transition-delay: 0s; border-top: 2px solid var(--cyan);">
+                    <div class="synergy-icon" style="color: var(--cyan);">&#8645;</div>
+                    <h3>Virtual Threads</h3>
+                    <p>Make threads cheap enough to use one per task. No more pooling, no more reactive workarounds.</p>
+                </div>
+                <div class="synergy-card" style="transition-delay: 0.15s; border-top: 2px solid var(--purple);">
+                    <div class="synergy-icon" style="color: var(--purple);">&#128274;</div>
+                    <h3>Scoped Values</h3>
+                    <p>Share context across those threads safely — immutable, zero-copy, auto-cleaned.</p>
+                </div>
+                <div class="synergy-card" style="transition-delay: 0.3s; border-top: 2px solid var(--green);">
+                    <div class="synergy-icon" style="color: var(--green);">&#9741;</div>
+                    <h3>Structured Concurrency</h3>
+                    <p>Keep those threads organized — parent-child relationships, automatic cancellation, no leaks.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="scene" data-scene>
+            <div style="max-width: 680px; margin: 0 auto;">
+                <h3>The full picture</h3>
+                <div class="code-block" style="margin-top: 16px;">
+                    <span class="code-label code-label-new">All three, together</span>
+<pre><span class="kw">static final</span> <span class="type">ScopedValue</span>&lt;User&gt; CURRENT_USER = <span class="type">ScopedValue</span>.<span class="fn">newInstance</span>();
+
+<span class="ann">@GetMapping</span>(<span class="str">"/dashboard"</span>)
+<span class="type">Dashboard</span> <span class="fn">getDashboard</span>(<span class="ann">@AuthenticatedUser</span> <span class="type">User</span> user) {
+    <span class="cm">// Scoped Value: bind user for the entire request scope</span>
+    <span class="kw">return</span> <span class="type">ScopedValue</span>.<span class="fn">where</span>(CURRENT_USER, user).<span class="fn">call</span>(() -> {
+
+        <span class="cm">// Structured Concurrency: fork subtasks, auto-cancel on failure</span>
+        <span class="kw">try</span> (<span class="kw">var</span> scope = <span class="kw">new</span> <span class="type">StructuredTaskScope</span>.<span class="fn">ShutdownOnFailure</span>()) {
+
+            <span class="cm">// Virtual Threads: each fork runs on its own virtual thread</span>
+            <span class="kw">var</span> orders   = scope.<span class="fn">fork</span>(() -> orderService.<span class="fn">forUser</span>(CURRENT_USER.<span class="fn">get</span>()));
+            <span class="kw">var</span> invoices = scope.<span class="fn">fork</span>(() -> invoiceService.<span class="fn">forUser</span>(CURRENT_USER.<span class="fn">get</span>()));
+            <span class="kw">var</span> prefs    = scope.<span class="fn">fork</span>(() -> prefService.<span class="fn">forUser</span>(CURRENT_USER.<span class="fn">get</span>()));
+
+            scope.<span class="fn">join</span>();
+            scope.<span class="fn">throwIfFailed</span>();
+
+            <span class="kw">return new</span> <span class="type">Dashboard</span>(orders.<span class="fn">get</span>(), invoices.<span class="fn">get</span>(), prefs.<span class="fn">get</span>());
+        }
+    });
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="scene" data-scene>
+            <div style="max-width: 680px; margin: 0 auto;">
+                <h3>At a glance</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Before</th>
+                            <th>After</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color: var(--text-bright); font-weight: 600;">Concurrency unit</td>
+                            <td>Platform thread (~1 MB, OS-managed)</td>
+                            <td style="color: var(--cyan);">Virtual thread (~1 KB, JVM-managed)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-bright); font-weight: 600;">Context passing</td>
+                            <td>ThreadLocal (mutable, copied, leak-prone)</td>
+                            <td style="color: var(--purple);">ScopedValue (immutable, shared, auto-cleaned)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-bright); font-weight: 600;">Task lifecycle</td>
+                            <td>Unstructured (fire &amp; forget, manual cancel)</td>
+                            <td style="color: var(--green);">Structured (parent-child, auto-cancel, no leaks)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-bright); font-weight: 600;">Scaling model</td>
+                            <td>Reactive chains, async callbacks</td>
+                            <td style="color: var(--green);">Blocking code, virtual threads</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--text-bright); font-weight: 600;">Spring Boot</td>
+                            <td>Opt-in (3.2)</td>
+                            <td style="color: var(--green);">Default (4.0)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="scene" data-scene>
+            <div style="text-align: center; padding: 60px 0 40px;">
+                <h3>Timeline</h3>
+            </div>
+            <div class="timeline" style="max-width: 500px; margin: 0 auto;" id="timeline">
+                <div class="timeline-item">
+                    <span class="tl-date">Java 19 (Sep 2022)</span>
+                    <span class="tl-text">Virtual Threads — first preview (JEP 425)</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="tl-date">Java 20 (Mar 2023)</span>
+                    <span class="tl-text">Scoped Values — first incubator (JEP 429)</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="tl-date">Java 21 LTS (Sep 2023)</span>
+                    <span class="tl-text">Virtual Threads finalized (JEP 444)</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="tl-date">Spring Boot 3.2 (Nov 2023)</span>
+                    <span class="tl-text">Virtual threads: opt-in via config</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="tl-date">Java 23+ (2024-2025)</span>
+                    <span class="tl-text">Scoped Values &amp; Structured Concurrency — continued preview</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="tl-date" style="color: var(--green);">Spring Boot 4 (2025)</span>
+                    <span class="tl-text"><strong>Virtual threads on by default</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scene" data-scene>
+            <div style="text-align: center; padding: 80px 0 40px; max-width: 600px; margin: 0 auto;">
+                <p style="font-size: 1.3rem; color: var(--text-bright); line-height: 1.6;">Write simple, blocking code.<br>Let the JVM handle the concurrency.<br>That's the revolution.</p>
+                <p style="margin-top: 32px; font-size: 0.85rem; color: var(--text-dim);">
+                    JEP 444 (Virtual Threads) &middot; JEP 481 (Scoped Values) &middot; JEP 480 (Structured Concurrency)
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div style="height: 80px;"></div>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script>
+(function() {
+    'use strict';
+
+    // ── Progress Bar ──
+    const progressBar = document.getElementById('progressBar');
+    function updateProgress() {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        progressBar.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive: true });
+
+    // ── Nav Dots ──
+    const navDots = document.querySelectorAll('.nav-dot');
+    const sections = ['hero', 'context', 'act1', 'act2', 'act3', 'spring', 'conclusion'];
+
+    navDots.forEach(dot => {
+        dot.addEventListener('click', () => {
+            const target = document.getElementById(dot.dataset.target);
+            if (target) target.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    function updateNavDots() {
+        let current = 0;
+        sections.forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el && window.scrollY >= el.offsetTop - 300) current = i;
+        });
+        navDots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === current);
+        });
+    }
+    window.addEventListener('scroll', updateNavDots, { passive: true });
+
+    // ── Scene Visibility (IntersectionObserver) ──
+    const sceneObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                const sceneId = entry.target.closest('[id]')?.id;
+                // Trigger scene-specific animations
+                if (entry.target.querySelector('#platformThreads')) animatePlatformThreads();
+                if (entry.target.querySelector('#vtCloud')) animateVirtualThreads();
+                if (entry.target.querySelector('#tlChildren')) animateThreadLocal();
+                if (entry.target.querySelector('#scopeBoundary')) animateScopedValue();
+                if (entry.target.querySelector('#unstructuredTasks')) animateUnstructured();
+                if (entry.target.querySelector('#structuredTasks')) animateStructured();
+                if (entry.target.querySelector('#synergyGrid')) animateSynergy();
+                if (entry.target.querySelector('#timeline')) animateTimeline();
+            }
+        });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('[data-scene]').forEach(scene => {
+        sceneObserver.observe(scene);
+    });
+
+    // ── Animated Counter ──
+    function animateCounter(element, from, to, duration) {
+        const start = performance.now();
+        function update(now) {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+            const current = Math.round(from + (to - from) * eased);
+            element.textContent = current.toLocaleString();
+            if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+    }
+
+    // ── Act 1: Platform Threads Animation ──
+    let ptAnimated = false;
+    function animatePlatformThreads() {
+        if (ptAnimated) return;
+        ptAnimated = true;
+        const threads = document.querySelectorAll('#platformThreads .thread-platform');
+        const dots = document.querySelectorAll('#requestQueue .request-dot');
+        const label = document.getElementById('queueLabel');
+
+        // Block threads after delays
+        threads.forEach(thread => {
+            const delay = parseInt(thread.dataset.blockDelay) || 1000;
+            setTimeout(() => {
+                thread.classList.add('blocked');
+                thread.querySelector('.thread-status').textContent = 'Blocked on I/O';
+            }, delay);
+        });
+
+        // Show queue dots
+        dots.forEach((dot, i) => {
+            setTimeout(() => dot.classList.add('visible'), 1500 + i * 150);
+        });
+
+        // Show label
+        setTimeout(() => label.classList.add('visible'), 1500 + dots.length * 150);
+    }
+
+    // ── Act 1: Virtual Threads Animation ──
+    let vtAnimated = false;
+    function animateVirtualThreads() {
+        if (vtAnimated) return;
+        vtAnimated = true;
+        const dots = document.querySelectorAll('#vtCloud .vt-dot');
+        const connector = document.getElementById('vtConnector');
+
+        // Show virtual thread dots
+        dots.forEach((dot, i) => {
+            setTimeout(() => {
+                dot.classList.add('visible');
+                // Start float animation after appearing
+                setTimeout(() => dot.classList.add('animate'), 300);
+            }, i * 80);
+        });
+
+        // Show connector
+        setTimeout(() => connector.classList.add('visible'), dots.length * 80 + 200);
+
+        // Animate counters
+        const counters = document.querySelectorAll('#vtStats [data-count-to]');
+        counters.forEach(counter => {
+            const to = parseInt(counter.dataset.countTo);
+            const from = parseInt(counter.dataset.countFrom);
+            setTimeout(() => animateCounter(counter, from, to, 1500), dots.length * 80 + 500);
+        });
+    }
+
+    // ── Act 2: ThreadLocal Animation ──
+    let tlAnimated = false;
+    function animateThreadLocal() {
+        if (tlAnimated) return;
+        tlAnimated = true;
+        const connector = document.getElementById('tlConnector');
+        const children = document.querySelectorAll('#tlChildren .scope-child');
+        const warning = document.getElementById('tlWarning');
+        const mutatedChild = document.getElementById('mutatedChild');
+        const mutatedValue = document.getElementById('mutatedValue');
+
+        // Show connector
+        setTimeout(() => connector.classList.add('visible'), 300);
+
+        // Show children (copies)
+        children.forEach(child => {
+            const delay = parseFloat(child.style.transitionDelay) * 1000 + 500;
+            setTimeout(() => {
+                child.classList.add('visible');
+                // Show copy badges
+                const badge = child.querySelector('.copy-badge');
+                if (badge) setTimeout(() => badge.classList.add('visible'), 300);
+            }, delay);
+        });
+
+        // Mutate child-3
+        setTimeout(() => {
+            mutatedChild.classList.add('mutated');
+            mutatedValue.textContent = '"Bob"';
+            const mutateBadge = mutatedChild.querySelector('.mutate-badge');
+            if (mutateBadge) mutateBadge.classList.add('visible');
+        }, 2200);
+
+        // Show warning
+        setTimeout(() => warning.classList.add('visible'), 2800);
+    }
+
+    // ── Act 2: ScopedValue Animation ──
+    let svAnimated = false;
+    function animateScopedValue() {
+        if (svAnimated) return;
+        svAnimated = true;
+        const boundary = document.getElementById('scopeBoundary');
+        const connector = document.getElementById('svConnector');
+        const children = document.querySelectorAll('#svChildren .scope-child');
+        const immutable = document.getElementById('svImmutable');
+
+        // Show boundary
+        setTimeout(() => boundary.classList.add('visible'), 200);
+
+        // Show connector
+        setTimeout(() => connector.classList.add('visible'), 600);
+
+        // Show children
+        children.forEach(child => {
+            const delay = parseFloat(child.style.transitionDelay) * 1000 + 600;
+            setTimeout(() => child.classList.add('visible'), delay);
+        });
+
+        // Show immutable note
+        setTimeout(() => immutable.classList.add('visible'), 2000);
+    }
+
+    // ── Act 3: Unstructured Concurrency Animation ──
+    let usAnimated = false;
+    function animateUnstructured() {
+        if (usAnimated) return;
+        usAnimated = true;
+        const task2 = document.getElementById('uTask2');
+        const task3 = document.getElementById('uTask3');
+        const question = document.getElementById('parentQuestion');
+        const warning = document.getElementById('unstructuredWarning');
+
+        // Task B fails
+        setTimeout(() => {
+            task2.classList.add('failed');
+            task2.querySelector('.task-status-badge').classList.add('visible');
+        }, 1000);
+
+        // Parent doesn't notice
+        setTimeout(() => question.classList.add('visible'), 1500);
+
+        // Task C leaks
+        setTimeout(() => {
+            task3.classList.add('leaked');
+            task3.classList.add('drifting');
+            task3.querySelector('.task-status-badge').classList.add('visible');
+        }, 2000);
+
+        // Task A finishes (nobody cares)
+        setTimeout(() => {
+            task2.querySelector('.task-status-badge').classList.add('visible');
+            document.getElementById('uTask1').querySelector('.task-status-badge').classList.add('visible');
+        }, 2500);
+
+        // Warning
+        setTimeout(() => warning.classList.add('visible'), 2800);
+    }
+
+    // ── Act 3: Structured Concurrency Animation ──
+    let scAnimated = false;
+    function animateStructured() {
+        if (scAnimated) return;
+        scAnimated = true;
+        const lines = document.querySelectorAll('#treeSvg .tree-line');
+        const task2 = document.getElementById('sTask2');
+        const task3 = document.getElementById('sTask3');
+        const task1 = document.getElementById('sTask1');
+        const info = document.getElementById('structuredInfo');
+
+        // Draw tree lines
+        lines.forEach((line, i) => {
+            setTimeout(() => line.classList.add('visible'), 300 + i * 200);
+        });
+
+        // Task B fails
+        setTimeout(() => {
+            task2.classList.add('failed');
+            task2.querySelector('.task-status-badge').classList.add('visible');
+            lines[1].classList.add('error'); // middle line turns red
+        }, 1500);
+
+        // Propagation: error travels up, then cancels C
+        setTimeout(() => {
+            lines[2].classList.add('error'); // right line turns red
+            task3.classList.add('cancelled');
+            task3.querySelector('.task-status-badge').classList.add('visible');
+        }, 2000);
+
+        // Task A completes
+        setTimeout(() => {
+            task1.querySelector('.task-status-badge').classList.add('visible');
+        }, 2200);
+
+        // Info message
+        setTimeout(() => info.classList.add('visible'), 2500);
+    }
+
+    // ── Synergy Cards ──
+    function animateSynergy() {
+        const cards = document.querySelectorAll('#synergyGrid .synergy-card');
+        cards.forEach((card, i) => {
+            setTimeout(() => card.classList.add('visible'), i * 150);
+        });
+    }
+
+    // ── Timeline ──
+    function animateTimeline() {
+        const items = document.querySelectorAll('#timeline .timeline-item');
+        items.forEach((item, i) => {
+            setTimeout(() => item.classList.add('visible'), i * 200);
+        });
+    }
+
+})();
+</script>
+
+</body>
+</html>
