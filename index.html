@@ -935,7 +935,7 @@
             <p class="eyebrow" style="color: var(--text-dim);">The backstory</p>
             <h2>The problem with platform threads</h2>
             <div class="narrative" style="margin-top: 24px;">
-                <p>Since Java 1.0, every <code>Thread</code> has been a thin wrapper around an <strong>OS thread</strong>. Each one allocates ~1 MB of stack memory. To keep a CPU 100% busy with typical I/O-bound work, you'd need roughly a million concurrent threads — but a million platform threads would require ~2 TB of memory. In practice, you hit a wall at a few thousand.</p>
+                <p>Since Java 1.0, every <code>Thread</code> has been a thin wrapper around an <strong>OS thread</strong>. Each one allocates ~1 MB of stack memory. To keep a CPU 100% busy with typical I/O-bound work, you'd need roughly a million concurrent threads — but a million platform threads would require ~2 TB of memory. In practice, your server runs with a fixed pool — <strong>200 threads in a typical Spring Boot app</strong>. When they're all blocked on I/O, requests queue up, even though the CPU is nearly idle. Making the pool bigger doesn't help much: context switching gets worse, memory grows fast, and the OS won't let you go past a few thousand anyway.</p>
                 <p style="margin-top: 16px;">The workaround has been reactive programming: split your code into small lambdas, wire them together with an async framework, never block a thread. It works, but you lose readable stack traces, simple debugging, and straightforward code. Maintenance cost goes up.</p>
                 <p style="margin-top: 16px;">Project Loom takes the other path: instead of changing how you write code, it makes threads cheap enough that blocking is fine again.</p>
             </div>
@@ -957,7 +957,7 @@
 
     <div class="scene" data-scene>
         <h3>The Old Way: Platform Thread Pool</h3>
-        <p style="max-width: 680px;">A typical database call takes ~100ms, but the actual CPU work (building the request, parsing the response) is measured in nanoseconds. That means a thread spends <strong>99.99% of its time doing nothing</strong> — just waiting for the network. A platform thread is a thin wrapper around an OS thread, each one costs ~1MB of memory, so you can only afford a few hundred of them. When they're all blocked on I/O, incoming requests queue up — even though the CPU is nearly idle.</p>
+        <p style="max-width: 680px;">A typical database call takes ~100ms, but the actual CPU work (building the request, parsing the response) is measured in nanoseconds. That means a thread spends <strong>99.99% of its time doing nothing</strong> — just waiting for the network. With only ~200 threads in the pool, it doesn't take many concurrent requests before they're all blocked and everything queues up.</p>
 
         <div class="diagram" id="platformThreadDemo">
             <span class="diagram-label label-problem">The problem</span>
@@ -1277,9 +1277,9 @@
             <span class="diagram-label label-solution">The solution</span>
             <button class="replay-btn" data-replay="structured" title="Replay animation">&#8635;</button>
             <svg class="tree-svg" id="treeSvg" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
-                <line class="tree-line" id="treeLine1" x1="400" y1="45" x2="250" y2="140" />
-                <line class="tree-line" id="treeLine2" x1="400" y1="45" x2="400" y2="140" />
-                <line class="tree-line" id="treeLine3" x1="400" y1="45" x2="550" y2="140" />
+                <line class="tree-line" id="treeLine1" x1="400" y1="70" x2="250" y2="140" />
+                <line class="tree-line" id="treeLine2" x1="400" y1="70" x2="400" y2="140" />
+                <line class="tree-line" id="treeLine3" x1="400" y1="70" x2="550" y2="140" />
             </svg>
             <div class="task-diagram">
                 <div class="task-parent task-parent-structured">
@@ -1367,27 +1367,15 @@
             <h3>Spring Boot & Virtual Threads</h3>
             <p style="margin-top: 12px; max-width: 680px;">Spring Boot adopted virtual threads early. One property flips every request handler, every <code>@Async</code> method, every scheduled task to virtual threads. Your existing blocking code (JPA queries, REST calls, JDBC) works as-is, but now scales to thousands of concurrent requests without reactive complexity.</p>
 
-            <div class="spring-versions">
-                <div class="spring-version">
-                    <span class="version-label" style="color: var(--amber);">Spring Boot 3.2+ (2023)</span>
+            <div class="code-block" style="max-width: 480px; margin-top: 20px;">
+                <span class="code-label" style="color: var(--green);">Spring Boot 3.2+ / 4.x</span>
 <pre><span class="cm"># application.properties</span>
 <span class="fn">spring.threads.virtual.enabled</span>=<span class="str">true</span>
 
-<span class="cm">// One line of config — that's it
+<span class="cm">// One line — that's it
 // Tomcat, Jetty, Undertow all supported
-// @Async uses virtual threads
+// @Async, scheduled tasks, request handlers
 // All blocking I/O benefits immediately</span></pre>
-                </div>
-                <div class="spring-version">
-                    <span class="version-label" style="color: var(--green);">Spring Boot 4 (Nov 2025)</span>
-<pre><span class="cm"># application.properties</span>
-<span class="fn">spring.threads.virtual.enabled</span>=<span class="str">true</span>
-
-<span class="cm">// Same opt-in property, still one line
-// Java 17+ baseline, 21+ recommended
-// JDK HttpClient auto-uses virtual threads
-// Broader ecosystem ready (JEP 491)</span></pre>
-                </div>
             </div>
         </div>
     </div>
