@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Null Safety with JSpecify — Spring Framework 7 & Spring Boot 4</title>
+    <style>
+        /* ───────────────── Variables ───────────────── */
+        :root {
+            --bg: #0a0a1a;
+            --bg-light: #10102a;
+            --bg-card: #161638;
+            --bg-code: #1a1a3e;
+            --text: #c0c0d0;
+            --text-bright: #f0f0ff;
+            --text-dim: #606080;
+            --border: #2a2a4a;
+
+            --cyan: #00d4ff;
+            --purple: #a855f7;
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --blue: #3b82f6;
+            --gray: #4b5563;
+
+            --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+        }
+
+        /* ───────────────── Reset & Base ───────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 18px;
+            overflow-x: hidden;
+        }
+
+        /* ───────────────── Progress Bar ───────────────── */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--green));
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.1s linear;
+        }
+
+        /* ───────────────── Back Link ───────────────── */
+        .back-link {
+            position: fixed;
+            top: 16px;
+            left: 24px;
+            z-index: 999;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-link:hover { color: var(--cyan); }
+        .back-link .arrow-left {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-left: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+        }
+
+        /* ───────────────── Nav Dots ───────────────── */
+        .nav-dots {
+            position: fixed;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--text-dim);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .nav-dot.active {
+            border-color: var(--cyan);
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+        }
+
+        /* ───────────────── Background Grid ───────────────── */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ───────────────── Layout ───────────────── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 100px 0;
+        }
+        .scene {
+            padding: 32px 0;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .scene.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ───────────────── Typography ───────────────── */
+        h1 {
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 800;
+            color: var(--text-bright);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+        h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--text-bright);
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 12px;
+        }
+        .eyebrow {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        .narrative {
+            font-size: 1.15rem;
+            max-width: 680px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+        .narrative strong { color: var(--text-bright); }
+
+        /* ───────────────── Hero ───────────────── */
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        #hero .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        #hero .eyebrow { color: var(--cyan); }
+        #hero h1 span {
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .scroll-hint {
+            margin-top: 60px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            animation: float 2s ease-in-out infinite;
+        }
+        .scroll-hint .arrow {
+            display: inline-block;
+            margin-top: 8px;
+            width: 20px;
+            height: 20px;
+            border-right: 2px solid var(--text-dim);
+            border-bottom: 2px solid var(--text-dim);
+            transform: rotate(45deg);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        /* ───────────────── Section Headers ───────────────── */
+        .section-header {
+            margin-bottom: 24px;
+        }
+        .section-number {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        .section-red .section-number { color: var(--red); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .section-amber .section-number { color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .section-green .section-number { color: var(--green); border: 1px solid rgba(34, 197, 94, 0.3); }
+        .section-cyan .section-number { color: var(--cyan); border: 1px solid rgba(0, 212, 255, 0.3); }
+        .section-purple .section-number { color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .section-blue .section-number { color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+        /* ───────────────── Diagrams ───────────────── */
+        .diagram {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            margin: 32px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .diagram-label {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        .label-problem {
+            color: var(--red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .label-solution {
+            color: var(--green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+        .label-info {
+            color: var(--cyan);
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        /* ───────────────── Code Blocks ───────────────── */
+        .code-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 32px 0;
+        }
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-block pre {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+        .code-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .code-label-old { color: var(--red); }
+        .code-label-new { color: var(--green); }
+        .code-label-spring { color: var(--cyan); }
+        .code-block.full-width { grid-column: 1 / -1; }
+
+        /* Syntax highlighting */
+        .kw { color: var(--purple); }
+        .fn { color: var(--cyan); }
+        .str { color: var(--green); }
+        .cm { color: var(--text-dim); font-style: italic; }
+        .num { color: var(--amber); }
+        .ann { color: var(--amber); }
+        .type { color: var(--cyan); }
+
+        /* ───────────────── Null Flow Animation ───────────────── */
+        .null-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-top: 32px;
+        }
+        .flow-track {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .flow-track-runtime {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .flow-track-compile {
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        .flow-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            min-width: 100px;
+        }
+        .flow-label-bad { color: var(--red); }
+        .flow-label-good { color: var(--green); }
+        .flow-stages {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        .flow-box {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .flow-box.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .flow-arrow {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .flow-arrow.visible { opacity: 1; }
+        .flow-null {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: var(--purple);
+        }
+        .flow-code {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            color: var(--cyan);
+        }
+        .flow-crash {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: var(--red);
+            animation: none;
+        }
+        .flow-crash.pulse {
+            animation: crashPulse 0.6s ease-in-out 3;
+        }
+        .flow-caught {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            color: var(--green);
+        }
+        @keyframes crashPulse {
+            0%, 100% { box-shadow: none; }
+            50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.5); }
+        }
+
+        /* ───────────────── Annotation Boxes ───────────────── */
+        .annotation-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 32px 0;
+        }
+        .annotation-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.3s ease;
+        }
+        .annotation-card .ann-package {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+        .annotation-card .ann-name {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .annotation-card .ann-status {
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .ann-deprecated .ann-name { color: var(--red); }
+        .ann-deprecated { border-color: rgba(239, 68, 68, 0.2); }
+        .ann-deprecated .ann-status { background: rgba(239, 68, 68, 0.1); color: var(--red); }
+        .ann-legacy .ann-name { color: var(--amber); }
+        .ann-legacy { border-color: rgba(245, 158, 11, 0.2); }
+        .ann-legacy .ann-status { background: rgba(245, 158, 11, 0.1); color: var(--amber); }
+        .ann-current .ann-name { color: var(--green); }
+        .ann-current { border-color: rgba(34, 197, 94, 0.3); box-shadow: 0 0 20px rgba(34, 197, 94, 0.05); }
+        .ann-current .ann-status { background: rgba(34, 197, 94, 0.1); color: var(--green); }
+
+        /* ───────────────── Tooling Cards ───────────────── */
+        .tooling-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 32px 0;
+        }
+        .tool-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 24px;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .tool-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--cyan);
+        }
+        .tool-card .tool-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+        .tool-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+        .tool-card p { font-size: 0.9rem; color: var(--text); }
+        .tool-card .tool-tag {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 3px 10px;
+            border-radius: 6px;
+            margin-top: 12px;
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--cyan);
+        }
+
+        /* ───────────────── Sources ───────────────── */
+        .sources-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 24px 0;
+        }
+        .sources-list li {
+            padding: 14px 20px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            transition: border-color 0.3s ease;
+        }
+        .sources-list li:hover {
+            border-color: var(--cyan);
+        }
+        .sources-list a {
+            color: var(--cyan);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: color 0.2s ease;
+        }
+        .sources-list a:hover { color: var(--text-bright); }
+        .sources-list .source-desc {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* ───────────────── Divider ───────────────── */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 40px 0;
+        }
+
+        /* ───────────────── Responsive ───────────────── */
+        @media (max-width: 768px) {
+            .container { padding: 0 20px; }
+            section { padding: 60px 0; }
+            .code-comparison { grid-template-columns: 1fr; }
+            .annotation-grid { grid-template-columns: 1fr; }
+            .tooling-grid { grid-template-columns: 1fr; }
+            .nav-dots { display: none; }
+            .diagram { padding: 24px 16px; }
+            .flow-label { min-width: 70px; font-size: 0.6rem; }
+            .flow-box { font-size: 0.65rem; padding: 6px 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<a href="index.html" class="back-link">
+    <span class="arrow-left"></span>
+    Back to overview
+</a>
+
+<!-- ═══════════════════ Nav Dots ═══════════════════ -->
+<nav class="nav-dots">
+    <div class="nav-dot active" data-target="hero"></div>
+    <div class="nav-dot" data-target="context"></div>
+    <div class="nav-dot" data-target="old-way"></div>
+    <div class="nav-dot" data-target="new-way"></div>
+    <div class="nav-dot" data-target="tooling"></div>
+    <div class="nav-dot" data-target="ecosystem"></div>
+    <div class="nav-dot" data-target="sources"></div>
+</nav>
+
+<!-- ═══════════════════ Hero ═══════════════════ -->
+<section id="hero">
+    <div class="hero-content">
+        <p class="eyebrow">Spring Framework 7 &middot; Spring Boot 4</p>
+        <h1><span>Null Safety</span><br>with JSpecify</h1>
+        <p class="subtitle">One annotation to rule them all. Non-null by default. Compile-time enforcement. Zero runtime surprises.</p>
+        <div class="scroll-hint">
+            Scroll to explore
+            <br>
+            <div class="arrow"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ Context: The Billion-Dollar Mistake ═══════════════════ -->
+<section id="context">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="section-header section-red">
+                <span class="section-number">The Problem</span>
+            </div>
+            <h2>The Billion-Dollar Mistake</h2>
+            <div class="narrative" style="max-width: 100%;">
+                <p>
+                    Tony Hoare called it his "billion-dollar mistake" &mdash; the invention of the null reference in 1965.
+                    In Java, <strong>NullPointerException</strong> is the single most common runtime error.
+                    It crashes applications in production, corrupts data, and wastes thousands of debugging hours.
+                </p>
+                <p style="margin-top: 16px;">
+                    The core issue: <strong>Java has no language-level null safety.</strong> Any reference can be null at any time.
+                    Teams defend against this with scattered null checks, Optional wrappers, and sheer hope &mdash;
+                    or they forget and crash in production at 3 AM.
+                </p>
+            </div>
+
+            <!-- Null flow animation -->
+            <div class="diagram" style="margin-top: 40px;">
+                <span class="diagram-label label-problem">What happens today</span>
+                <div class="null-flow" id="nullFlowDiagram" style="margin-top: 24px;">
+                    <!-- Runtime track -->
+                    <div class="flow-track flow-track-runtime">
+                        <span class="flow-label flow-label-bad">Without<br>JSpecify</span>
+                        <div class="flow-stages" id="runtimeFlow">
+                            <div class="flow-box flow-null" data-delay="0">null</div>
+                            <span class="flow-arrow" data-delay="200">&rarr;</span>
+                            <div class="flow-box flow-code" data-delay="400">compile</div>
+                            <span class="flow-arrow" data-delay="600">&rarr;</span>
+                            <div class="flow-box flow-code" data-delay="800">deploy</div>
+                            <span class="flow-arrow" data-delay="1000">&rarr;</span>
+                            <div class="flow-box flow-crash" data-delay="1200">NPE!</div>
+                        </div>
+                    </div>
+                    <!-- Compile-time track -->
+                    <div class="flow-track flow-track-compile">
+                        <span class="flow-label flow-label-good">With<br>JSpecify</span>
+                        <div class="flow-stages" id="compileFlow">
+                            <div class="flow-box flow-null" data-delay="0">null</div>
+                            <span class="flow-arrow" data-delay="200">&rarr;</span>
+                            <div class="flow-box flow-caught" data-delay="400">caught!</div>
+                            <span class="flow-arrow" data-delay="600" style="visibility: hidden;">&rarr;</span>
+                            <div class="flow-box" data-delay="800" style="visibility: hidden; padding: 8px 14px;">&nbsp;</div>
+                            <span class="flow-arrow" data-delay="1000" style="visibility: hidden;">&rarr;</span>
+                            <div class="flow-box" data-delay="1200" style="visibility: hidden; padding: 8px 14px;">&nbsp;</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ Old Way — Scattered Annotations ═══════════════════ -->
+<section id="old-way">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="section-header section-amber">
+                <span class="section-number">The Old Way</span>
+            </div>
+            <h2>Scattered Annotations, No Enforcement</h2>
+            <p class="narrative" style="max-width: 100%;">
+                Before JSpecify, the Java ecosystem had <strong>multiple competing null-annotation standards</strong>.
+                Spring had its own <code style="color: var(--amber);">@Nullable</code> /
+                <code style="color: var(--amber);">@NonNull</code> from <code>org.springframework.lang</code>.
+                JSR-305 introduced <code style="color: var(--amber);">javax.annotation.Nullable</code>.
+                JetBrains, FindBugs, and Eclipse each had their own. None were enforced at compile time.
+            </p>
+
+            <!-- Annotation landscape -->
+            <div class="annotation-grid" style="margin-top: 32px;">
+                <div class="annotation-card ann-deprecated">
+                    <div class="ann-package">javax.annotation</div>
+                    <div class="ann-name">@Nullable</div>
+                    <div class="ann-status">JSR-305 / Dormant</div>
+                </div>
+                <div class="annotation-card ann-legacy">
+                    <div class="ann-package">org.springframework.lang</div>
+                    <div class="ann-name">@NonNull</div>
+                    <div class="ann-status">Spring / Superseded</div>
+                </div>
+                <div class="annotation-card ann-current">
+                    <div class="ann-package">org.jspecify.annotations</div>
+                    <div class="ann-name">@NullMarked</div>
+                    <div class="ann-status">JSpecify / Standard</div>
+                </div>
+            </div>
+
+            <!-- Old code example -->
+            <div class="code-block" style="margin-top: 32px;">
+                <span class="code-label code-label-old">Spring 6 &mdash; verbose @NonNull everywhere</span>
+<pre><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="type">UserService</span> {
+
+    <span class="ann">@NonNull</span>
+    <span class="kw">private final</span> <span class="type">UserRepository</span> repository;
+
+    <span class="kw">public</span> <span class="type">UserService</span>(<span class="ann">@NonNull</span> <span class="type">UserRepository</span> repository) {
+        <span class="kw">this</span>.repository = repository;
+    }
+
+    <span class="ann">@NonNull</span>
+    <span class="kw">public</span> <span class="type">User</span> <span class="fn">findById</span>(<span class="ann">@NonNull</span> <span class="type">Long</span> id) {
+        <span class="kw">return</span> repository.<span class="fn">findById</span>(id)
+            .<span class="fn">orElseThrow</span>(() <span class="kw">-&gt;</span> <span class="kw">new</span> <span class="type">NotFoundException</span>(id));
+    }
+
+    <span class="ann">@Nullable</span>
+    <span class="kw">public</span> <span class="type">User</span> <span class="fn">findByEmail</span>(<span class="ann">@NonNull</span> <span class="type">String</span> email) {
+        <span class="kw">return</span> repository.<span class="fn">findByEmail</span>(email).<span class="fn">orElse</span>(<span class="kw">null</span>);
+    }
+}</pre>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-dim); margin-top: 16px; text-align: center;">
+                Every parameter and return type needs an annotation. Miss one and you have no safety at all.
+                The noise drowns the signal.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ New Way — JSpecify @NullMarked ═══════════════════ -->
+<section id="new-way">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="section-header section-green">
+                <span class="section-number">The New Way</span>
+            </div>
+            <h2>JSpecify: Non-Null by Default</h2>
+            <p class="narrative" style="max-width: 100%;">
+                JSpecify flips the model. Put <strong><code style="color: var(--green);">@NullMarked</code></strong> on your
+                <code>package-info.java</code> and <strong>everything in that package is non-null by default</strong>.
+                Only annotate the exceptions with <code style="color: var(--amber);">@Nullable</code>.
+                The result: dramatically less annotation noise, and the annotations that remain carry real meaning.
+            </p>
+
+            <!-- package-info.java -->
+            <div class="code-block" style="margin-top: 32px;">
+                <span class="code-label code-label-spring">package-info.java &mdash; one annotation, package-wide</span>
+<pre><span class="ann">@NullMarked</span>
+<span class="kw">package</span> <span class="type">com.example.app.service</span>;
+
+<span class="kw">import</span> org.jspecify.annotations.<span class="type">NullMarked</span>;</pre>
+            </div>
+
+            <!-- Clean service -->
+            <div class="code-block" style="margin-top: 20px;">
+                <span class="code-label code-label-new">UserService.java &mdash; clean, non-null by default</span>
+<pre><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="type">UserService</span> {
+
+    <span class="kw">private final</span> <span class="type">UserRepository</span> repository;  <span class="cm">// non-null by default</span>
+
+    <span class="kw">public</span> <span class="type">UserService</span>(<span class="type">UserRepository</span> repository) {  <span class="cm">// non-null param</span>
+        <span class="kw">this</span>.repository = repository;
+    }
+
+    <span class="kw">public</span> <span class="type">User</span> <span class="fn">findById</span>(<span class="type">Long</span> id) {  <span class="cm">// returns non-null</span>
+        <span class="kw">return</span> repository.<span class="fn">findById</span>(id)
+            .<span class="fn">orElseThrow</span>(() <span class="kw">-&gt;</span> <span class="kw">new</span> <span class="type">NotFoundException</span>(id));
+    }
+
+    <span class="kw">public</span> <span class="ann">@Nullable</span> <span class="type">User</span> <span class="fn">findByEmail</span>(<span class="type">String</span> email) {  <span class="cm">// only this is nullable</span>
+        <span class="kw">return</span> repository.<span class="fn">findByEmail</span>(email).<span class="fn">orElse</span>(<span class="kw">null</span>);
+    }
+}</pre>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--green); margin-top: 16px; text-align: center; font-weight: 600;">
+                Only the exceptions need annotations. Everything else is non-null by default.
+            </p>
+            <div style="margin-top: 20px; padding: 16px 20px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; font-size: 0.9rem;">
+                <strong style="color: var(--amber);">Important:</strong> <code>@NullMarked</code> does not cascade to sub-packages. Each package needs its own <code>package-info.java</code>.
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ Tooling ═══════════════════ -->
+<section id="tooling">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="section-header section-cyan">
+                <span class="section-number">Tooling</span>
+            </div>
+            <h2>Compile-Time Enforcement, IDE Support, Cross-Language</h2>
+            <p class="narrative" style="max-width: 100%;">
+                JSpecify is not just annotations &mdash; it is a <strong>specification</strong> that tools understand natively.
+                The ecosystem is converging on it as the single standard.
+            </p>
+
+            <p class="narrative" style="max-width: 100%; margin-top: 16px;">
+                <strong style="color: var(--amber);">Annotations alone are just documentation.</strong> Without tooling, nothing actually stops you from passing null. You need at least one of these to get real enforcement.
+            </p>
+
+            <div class="tooling-grid">
+                <div class="tool-card">
+                    <div class="tool-icon">&#x26A0;&#xFE0F;</div>
+                    <h3>NullAway</h3>
+                    <p>
+                        Error Prone plugin that <strong>fails your build</strong> on null violations.
+                        This is the real enforcement layer &mdash; without it, <code>@NullMarked</code> is advisory only.
+                        Integrates with Gradle and Maven.
+                    </p>
+                    <span class="tool-tag">Build-time &mdash; errors</span>
+                </div>
+                <div class="tool-card">
+                    <div class="tool-icon">&#x1F4BB;</div>
+                    <h3>IntelliJ 2025.3+</h3>
+                    <p>
+                        Native JSpecify support. <strong>Warnings and inspections</strong> in the editor &mdash;
+                        highlights violations as you type, suggests quick-fixes. Helpful, but won't fail your CI.
+                    </p>
+                    <span class="tool-tag">IDE &mdash; warnings</span>
+                </div>
+                <div class="tool-card">
+                    <div class="tool-icon">&#x1F310;</div>
+                    <h3>Kotlin 2</h3>
+                    <p>
+                        Auto-translates JSpecify annotations to Kotlin nullability.
+                        <code style="color: var(--cyan);">@Nullable String</code> becomes
+                        <code style="color: var(--purple);">String?</code> seamlessly.
+                    </p>
+                    <span class="tool-tag">Cross-language</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; padding: 20px 24px; background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px;">
+                <h3 style="font-size: 1rem; color: var(--red); margin-bottom: 8px;">Third-party blind spot</h3>
+                <p style="font-size: 0.9rem;">
+                    JSpecify only helps where <strong>both sides</strong> of a call are annotated.
+                    If you call a library that hasn't adopted JSpecify &mdash; and most haven't yet &mdash;
+                    those types appear as unannotated. NullAway won't flag violations at the boundary.
+                    You're back to defensive checking for anything coming from outside your <code>@NullMarked</code> code.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ Spring Ecosystem Status ═══════════════════ -->
+<div id="ecosystem" class="container">
+    <div class="scene" data-scene>
+        <div class="section-header section-green">
+            <span class="section-number">Ecosystem</span>
+        </div>
+        <h2>Who's null-safe today?</h2>
+        <p class="narrative" style="max-width: 100%;">
+            Spring Framework 7 and most of the Spring portfolio ship with <code>@NullMarked</code> packages.
+            But the wider Java ecosystem is still catching up.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px;">
+            <div style="background: rgba(34, 197, 94, 0.06); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 12px; padding: 24px;">
+                <h3 style="font-size: 0.75rem; color: var(--green); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px;">Null-safe now</h3>
+                <ul style="list-style: none; font-size: 0.8rem; line-height: 2;">
+                    <li>Spring Boot 4.0</li>
+                    <li>Spring Framework 7.0</li>
+                    <li>Spring Data 4.0</li>
+                    <li>Spring Security 7.0</li>
+                    <li>Spring Batch 6.0</li>
+                    <li>Spring Kafka 4.0</li>
+                    <li>Spring Integration 7.0</li>
+                    <li>Spring GraphQL 2.0</li>
+                    <li>Spring Web Services 5.0</li>
+                    <li>Spring AMQP 4.0</li>
+                    <li>Spring Shell 4.0</li>
+                    <li>Spring HATEOAS 3.0</li>
+                    <li>Spring Modulith 2.0</li>
+                    <li>Spring Vault 4.0</li>
+                    <li>Spring Cloud Commons 5.0</li>
+                    <li>Spring Cloud Gateway 5.0</li>
+                    <li>Reactor 2025.0</li>
+                    <li>Micrometer 1.16</li>
+                </ul>
+            </div>
+            <div>
+                <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 24px;">
+                    <h3 style="font-size: 0.75rem; color: var(--amber); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px;">Planned</h3>
+                    <ul style="list-style: none; font-size: 0.8rem; line-height: 2;">
+                        <li>Spring AI (planned 2.0)</li>
+                        <li>Spring Session</li>
+                        <li>Spring LDAP</li>
+                        <li>Spring gRPC (planned 1.0)</li>
+                        <li>Rest of Spring Cloud (tentatively 2026.0)</li>
+                    </ul>
+                </div>
+                <div style="background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 12px; padding: 24px; margin-top: 16px;">
+                    <h3 style="font-size: 0.75rem; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px;">Third-party adopters</h3>
+                    <ul style="list-style: none; font-size: 0.8rem; line-height: 2;">
+                        <li>JUnit</li>
+                        <li>GraphQL Java</li>
+                        <li>Caffeine</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-divider"></div>
+</div>
+
+<!-- ═══════════════════ Sources ═══════════════════ -->
+<section id="sources" style="min-height: auto; padding: 80px 0 120px;">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="section-header section-blue">
+                <span class="section-number">Sources</span>
+            </div>
+            <h2>Further Reading</h2>
+
+            <ul class="sources-list">
+                <li>
+                    <a href="https://spring.io/blog/2025/03/10/null-safety-in-spring-apps-with-jspecify-and-null-away/" target="_blank" rel="noopener">
+                        Null safety in Spring apps with JSpecify and NullAway
+                    </a>
+                    <span class="source-desc">Spring.io blog &mdash; March 2025. The original announcement of JSpecify adoption in Spring Framework.</span>
+                </li>
+                <li>
+                    <a href="https://spring.io/blog/2025/11/12/null-safe-applications-with-spring-boot-4/" target="_blank" rel="noopener">
+                        Null-safe applications with Spring Boot 4
+                    </a>
+                    <span class="source-desc">Spring.io blog &mdash; November 2025. Practical guide to enabling null safety in Boot 4 projects.</span>
+                </li>
+                <li>
+                    <a href="https://www.baeldung.com/java-jspecify-null-safety" target="_blank" rel="noopener">
+                        Guide to JSpecify Null Safety in Java
+                    </a>
+                    <span class="source-desc">Baeldung &mdash; comprehensive tutorial covering setup, annotation usage, and NullAway integration.</span>
+                </li>
+                <li>
+                    <a href="https://jspecify.dev/" target="_blank" rel="noopener">
+                        JSpecify.dev
+                    </a>
+                    <span class="source-desc">The official JSpecify specification site. Reference documentation and project governance.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ JavaScript ═══════════════════ -->
+<script>
+    // ── Progress Bar ──
+    const progressBar = document.getElementById('progressBar');
+    function updateProgress() {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        progressBar.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive: true });
+
+    // ── Nav Dots ──
+    const navDots = document.querySelectorAll('.nav-dot');
+    const sections = ['hero', 'context', 'old-way', 'new-way', 'tooling', 'ecosystem', 'sources'];
+
+    navDots.forEach(dot => {
+        dot.addEventListener('click', () => {
+            const target = document.getElementById(dot.dataset.target);
+            if (target) target.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    function updateNavDots() {
+        let current = 0;
+        sections.forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el && window.scrollY >= el.offsetTop - 300) current = i;
+        });
+        navDots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === current);
+        });
+    }
+    window.addEventListener('scroll', updateNavDots, { passive: true });
+
+    // ── Scene Visibility (IntersectionObserver) ──
+    const sceneObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+
+                // Trigger null-flow animation on first view
+                if (entry.target.querySelector('#nullFlowDiagram')) {
+                    animateNullFlow();
+                }
+            }
+        });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('[data-scene]').forEach(scene => {
+        sceneObserver.observe(scene);
+    });
+
+    // ── Null Flow Animation ──
+    let nullFlowPlayed = false;
+    function animateNullFlow() {
+        if (nullFlowPlayed) return;
+        nullFlowPlayed = true;
+
+        // Animate runtime track
+        const runtimeBoxes = document.querySelectorAll('#runtimeFlow .flow-box, #runtimeFlow .flow-arrow');
+        runtimeBoxes.forEach((el) => {
+            const delay = parseInt(el.dataset.delay) || 0;
+            setTimeout(() => {
+                el.classList.add('visible');
+                // Pulse the crash box
+                if (el.classList.contains('flow-crash')) {
+                    setTimeout(() => el.classList.add('pulse'), 100);
+                }
+            }, delay + 300);
+        });
+
+        // Animate compile-time track (with slight offset)
+        const compileBoxes = document.querySelectorAll('#compileFlow .flow-box, #compileFlow .flow-arrow');
+        compileBoxes.forEach((el) => {
+            const delay = parseInt(el.dataset.delay) || 0;
+            if (el.style.visibility === 'hidden') return;
+            setTimeout(() => {
+                el.classList.add('visible');
+            }, delay + 1600);
+        });
+    }
+</script>
+
+</body>
+</html>

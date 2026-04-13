@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java 21 → 25 — Honorable Mentions</title>
+    <style>
+        :root {
+            --bg: #0a0a1a;
+            --bg-light: #10102a;
+            --bg-card: #161638;
+            --bg-code: #1a1a3e;
+            --text: #c0c0d0;
+            --text-bright: #f0f0ff;
+            --text-dim: #606080;
+            --border: #2a2a4a;
+            --cyan: #00d4ff;
+            --purple: #a855f7;
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --blue: #3b82f6;
+            --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 18px;
+            overflow-x: hidden;
+        }
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .progress-bar {
+            position: fixed; top: 0; left: 0; height: 3px;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--green));
+            width: 0%; z-index: 1000; transition: width 0.1s linear;
+        }
+        .back-link {
+            position: fixed; top: 16px; left: 24px; z-index: 999;
+            font-size: 0.8rem; font-weight: 600; color: var(--text-dim);
+            text-decoration: none; letter-spacing: 0.05em;
+            transition: color 0.3s ease; display: flex; align-items: center; gap: 6px;
+        }
+        .back-link:hover { color: var(--cyan); }
+        .back-link .arrow-left {
+            display: inline-block; width: 8px; height: 8px;
+            border-left: 2px solid currentColor; border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 40px; position: relative; z-index: 1; }
+
+        /* Hero */
+        .hero {
+            min-height: 60vh; display: flex; align-items: center;
+            justify-content: center; text-align: center; padding: 120px 0 60px;
+        }
+        .eyebrow {
+            font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.15em; color: var(--cyan); margin-bottom: 12px;
+        }
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 800;
+            color: var(--text-bright); line-height: 1.1; letter-spacing: -0.03em;
+        }
+        h1 span {
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subtitle { font-size: 1.1rem; color: var(--text-dim); max-width: 550px; margin: 16px auto 0; }
+
+        /* Feature cards */
+        .feature {
+            padding: 40px 0;
+            opacity: 0; transform: translateY(30px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .feature.visible { opacity: 1; transform: translateY(0); }
+        .feature-header {
+            display: flex; align-items: baseline; gap: 16px;
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .feature-header h2 {
+            font-size: 1.5rem; font-weight: 700; color: var(--text-bright); line-height: 1.3;
+        }
+        .feature-badge {
+            font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.1em; padding: 3px 10px; border-radius: 8px;
+            white-space: nowrap;
+        }
+        .badge-22 { color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+        .badge-24 { color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+        .badge-25 { color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
+        .badge-warn { color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+        .feature p { max-width: 700px; font-size: 1rem; }
+        .code-comparison {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 16px; margin-top: 16px;
+        }
+        .code-label {
+            font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.15em; margin-bottom: 12px; display: block;
+        }
+        .code-label-old { color: var(--red); }
+        .code-label-new { color: var(--green); }
+        .feature .code-block {
+            background: var(--bg-code); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px 24px; margin-top: 16px;
+            overflow-x: auto;
+        }
+        .feature .code-block pre {
+            font-family: var(--font-mono); font-size: 0.8rem;
+            line-height: 1.7; color: var(--text);
+        }
+        .kw { color: var(--purple); }
+        .fn { color: var(--cyan); }
+        .str { color: var(--green); }
+        .cm { color: var(--text-dim); font-style: italic; }
+        .num { color: var(--amber); }
+        .ann { color: var(--amber); }
+        .type { color: var(--cyan); }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 8px 0;
+        }
+
+        .warn-box {
+            margin-top: 16px; padding: 16px 20px; border-radius: 10px;
+            background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2);
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center; padding: 60px 0 80px;
+            font-size: 0.8rem; color: var(--text-dim);
+        }
+        .footer a { color: var(--cyan); text-decoration: none; }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 20px; }
+            .feature-header { flex-direction: column; gap: 8px; }
+            .code-comparison { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="progress-bar" id="progressBar"></div>
+<a href="index.html" class="back-link"><span class="arrow-left"></span> Back to overview</a>
+
+<div class="container">
+
+    <!-- Hero -->
+    <div class="hero">
+        <div>
+            <p class="eyebrow">Java 22 &middot; 23 &middot; 24 &middot; 25</p>
+            <h1>Honorable <span>Mentions</span></h1>
+            <p class="subtitle">Smaller features finalized between Java 21 and 25 that are worth knowing about.</p>
+        </div>
+    </div>
+
+    <!-- ─── Unnamed Variables ─── -->
+    <div class="feature" data-scene>
+        <div class="feature-header">
+            <h2>Unnamed Variables & Patterns</h2>
+            <span class="feature-badge badge-22">Java 22 &middot; JEP 456</span>
+        </div>
+        <p>Use <code>_</code> for variables you intentionally don't use. No more <code>ignored</code>, <code>unused</code>, or suppressed warnings. Works in catch blocks, for loops, lambdas, patterns, and switch cases.</p>
+        <div class="code-comparison">
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-old">Before</span>
+<pre><span class="kw">try</span> {
+    parseJson(input);
+} <span class="kw">catch</span> (<span class="type">JsonException</span> ex) {
+    <span class="kw">return</span> fallback;  <span class="cm">// 'ex' never used</span>
+}
+
+map.<span class="fn">forEach</span>((key, value) ->
+    process(value));  <span class="cm">// 'key' never used</span></pre>
+            </div>
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-new">After</span>
+<pre><span class="kw">try</span> {
+    parseJson(input);
+} <span class="kw">catch</span> (<span class="type">JsonException</span> _) {
+    <span class="kw">return</span> fallback;  <span class="cm">// explicitly unused</span>
+}
+
+map.<span class="fn">forEach</span>((_, value) ->
+    process(value));  <span class="cm">// explicitly unused</span></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ─── Stream Gatherers ─── -->
+    <div class="feature" data-scene>
+        <div class="feature-header">
+            <h2>Stream Gatherers</h2>
+            <span class="feature-badge badge-24">Java 24 &middot; JEP 485</span>
+        </div>
+        <p>Custom intermediate stream operations. Until now, you were limited to <code>map</code>, <code>filter</code>, <code>flatMap</code>, etc. If you needed a sliding window, a running total, or any stateful transformation mid-pipeline — you were out of luck. <code>gather()</code> fills that gap.</p>
+        <div class="code-block">
+<pre><span class="cm">// Sliding window of size 3</span>
+<span class="type">List</span>&lt;<span class="type">List</span>&lt;<span class="type">Integer</span>&gt;&gt; windows = <span class="type">Stream</span>.<span class="fn">of</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>)
+    .<span class="fn">gather</span>(<span class="type">Gatherers</span>.<span class="fn">windowSliding</span>(<span class="num">3</span>))
+    .<span class="fn">toList</span>();
+<span class="cm">// [[1,2,3], [2,3,4], [3,4,5]]</span>
+
+<span class="cm">// Fixed-size batches</span>
+<span class="type">List</span>&lt;<span class="type">List</span>&lt;<span class="type">Order</span>&gt;&gt; batches = orders.<span class="fn">stream</span>()
+    .<span class="fn">gather</span>(<span class="type">Gatherers</span>.<span class="fn">windowFixed</span>(<span class="num">100</span>))
+    .<span class="fn">toList</span>();
+
+<span class="cm">// Running scan (like reduce but emits each step)</span>
+<span class="type">Stream</span>.<span class="fn">of</span>(<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>)
+    .<span class="fn">gather</span>(<span class="type">Gatherers</span>.<span class="fn">scan</span>(() -> <span class="num">0</span>, <span class="type">Integer</span>::sum))
+    .<span class="fn">toList</span>();
+<span class="cm">// [1, 3, 6, 10]</span></pre>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ─── Flexible Constructor Bodies ─── -->
+    <div class="feature" data-scene>
+        <div class="feature-header">
+            <h2>Flexible Constructor Bodies</h2>
+            <span class="feature-badge badge-25">Java 25 &middot; JEP 495</span>
+        </div>
+        <p>You can now write statements <strong>before</strong> <code>super()</code> or <code>this()</code>. Validate arguments, compute values, initialize fields — all before calling the parent constructor. No more awkward static helper methods just to work around the old restriction.</p>
+        <div class="code-comparison">
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-old">Before</span>
+<pre><span class="kw">public class</span> <span class="type">PositiveAmount</span> <span class="kw">extends</span> <span class="type">Amount</span> {
+    <span class="kw">public</span> <span class="type">PositiveAmount</span>(<span class="kw">long</span> value) {
+        <span class="kw">super</span>(validate(value));
+    }
+
+    <span class="cm">// static helper just to validate</span>
+    <span class="kw">private static</span> <span class="kw">long</span> <span class="fn">validate</span>(<span class="kw">long</span> v) {
+        <span class="kw">if</span> (v &lt;= <span class="num">0</span>)
+            <span class="kw">throw new</span> <span class="type">IllegalArgumentException</span>();
+        <span class="kw">return</span> v;
+    }
+}</pre>
+            </div>
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-new">After</span>
+<pre><span class="kw">public class</span> <span class="type">PositiveAmount</span> <span class="kw">extends</span> <span class="type">Amount</span> {
+    <span class="kw">public</span> <span class="type">PositiveAmount</span>(<span class="kw">long</span> value) {
+        <span class="kw">if</span> (value &lt;= <span class="num">0</span>)
+            <span class="kw">throw new</span> <span class="type">IllegalArgumentException</span>();
+        <span class="kw">super</span>(value);
+    }
+
+    <span class="cm">// no static helper needed</span>
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ─── Compact Source Files ─── -->
+    <div class="feature" data-scene>
+        <div class="feature-header">
+            <h2>Compact Source Files & Instance Main</h2>
+            <span class="feature-badge badge-25">Java 25 &middot; JEP 512</span>
+        </div>
+        <p>The classic <code>public static void main(String[] args)</code> ceremony is no longer required. You can write a simple program without a class declaration, and <code>main</code> can be an instance method with no parameters. Great for scripting, teaching, and quick prototyping.</p>
+        <div class="code-comparison">
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-old">Before</span>
+<pre><span class="kw">public class</span> <span class="type">HelloWorld</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) {
+        <span class="type">System</span>.out.<span class="fn">println</span>(<span class="str">"Hello, World!"</span>);
+    }
+}</pre>
+            </div>
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-new">After</span>
+<pre><span class="kw">void</span> <span class="fn">main</span>() {
+    <span class="fn">println</span>(<span class="str">"Hello, World!"</span>);
+}
+
+<span class="cm">// That's the whole file.</span></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ─── Module Import Declarations ─── -->
+    <div class="feature" data-scene>
+        <div class="feature-header">
+            <h2>Module Import Declarations</h2>
+            <span class="feature-badge badge-25">Java 25 &middot; JEP 502</span>
+        </div>
+        <p>Import an entire module with a single statement. All public types from all packages exported by the module become available. Reduces boilerplate in files that use many types from the same module.</p>
+        <div class="code-comparison">
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-old">Before</span>
+<pre><span class="kw">import</span> java.util.<span class="type">List</span>;
+<span class="kw">import</span> java.util.<span class="type">Map</span>;
+<span class="kw">import</span> java.util.<span class="type">Optional</span>;
+<span class="kw">import</span> java.util.stream.<span class="type">Collectors</span>;
+<span class="kw">import</span> java.io.<span class="type">IOException</span>;
+<span class="kw">import</span> java.nio.file.<span class="type">Path</span>;</pre>
+            </div>
+            <div class="code-block" style="margin-top: 0;">
+                <span class="code-label code-label-new">After</span>
+<pre><span class="kw">import module</span> java.base;
+
+<span class="cm">// That's it. List, Map, Optional,</span>
+<span class="cm">// Collectors, IOException, Path —</span>
+<span class="cm">// all available.</span></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ─── Security Manager Removed ─── -->
+    <div class="feature" data-scene>
+        <div class="feature-header">
+            <h2>Security Manager Permanently Disabled</h2>
+            <span class="feature-badge badge-warn">Java 24 &middot; JEP 486</span>
+        </div>
+        <p>The Security Manager has been permanently disabled and cannot be enabled at runtime. It was deprecated for removal in Java 17 and has now been fully shut off. If your application or any dependency relies on it, <strong>it will break silently on upgrade</strong>.</p>
+        <div class="warn-box">
+            <strong style="color: var(--red);">Upgrade heads-up:</strong> Check your dependencies. Some older libraries (particularly around RMI, JNDI, and custom classloaders) may have relied on Security Manager permissions. These will stop working without clear error messages.
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p><a href="index.html">&larr; Back to overview</a></p>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    // Progress bar
+    const bar = document.getElementById('progressBar');
+    window.addEventListener('scroll', () => {
+        const h = document.documentElement.scrollHeight - window.innerHeight;
+        bar.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+    }, { passive: true });
+
+    // Fade in on scroll
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('[data-scene]').forEach(el => obs.observe(el));
+})();
+</script>
+
+</body>
+</html>

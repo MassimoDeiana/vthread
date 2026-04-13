@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Declarative HTTP Clients — Spring Boot 4 & Spring Framework 7</title>
+    <style>
+        /* ───────────────── Variables ───────────────── */
+        :root {
+            --bg: #0a0a1a;
+            --bg-light: #10102a;
+            --bg-card: #161638;
+            --bg-code: #1a1a3e;
+            --text: #c0c0d0;
+            --text-bright: #f0f0ff;
+            --text-dim: #606080;
+            --border: #2a2a4a;
+
+            --cyan: #00d4ff;
+            --purple: #a855f7;
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --blue: #3b82f6;
+
+            --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+        }
+
+        /* ───────────────── Reset & Base ───────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 18px;
+            overflow-x: hidden;
+        }
+
+        /* ───────────────── Progress Bar ───────────────── */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--green));
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.1s linear;
+        }
+
+        /* ───────────────── Back Link ───────────────── */
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 24px;
+            z-index: 100;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover { color: var(--cyan); }
+        .back-link .arrow-left {
+            display: inline-block;
+            margin-right: 6px;
+            transition: transform 0.3s ease;
+        }
+        .back-link:hover .arrow-left { transform: translateX(-4px); }
+
+        /* ───────────────── Background Grid ───────────────── */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ───────────────── Layout ───────────────── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 100px 0;
+        }
+        section.auto-height {
+            min-height: auto;
+        }
+        .scene {
+            padding: 32px 0;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .scene.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ───────────────── Typography ───────────────── */
+        h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 800;
+            color: var(--text-bright);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+        h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--text-bright);
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 12px;
+        }
+        .eyebrow {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        .narrative {
+            font-size: 1.15rem;
+            max-width: 680px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+        .narrative strong { color: var(--text-bright); }
+
+        /* ───────────────── Hero ───────────────── */
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        #hero .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        #hero .eyebrow { color: var(--cyan); }
+        #hero h1 span {
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .scroll-hint {
+            margin-top: 60px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            animation: float 2s ease-in-out infinite;
+        }
+        .scroll-hint .arrow {
+            display: inline-block;
+            margin-top: 8px;
+            width: 20px;
+            height: 20px;
+            border-right: 2px solid var(--text-dim);
+            border-bottom: 2px solid var(--text-dim);
+            transform: rotate(45deg);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        /* ───────────────── Section Headers ───────────────── */
+        .section-number {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        .section-old .section-number { color: var(--red); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .section-new .section-number { color: var(--green); border: 1px solid rgba(34, 197, 94, 0.3); }
+        .section-config .section-number { color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .section-usage .section-number { color: var(--cyan); border: 1px solid rgba(0, 212, 255, 0.3); }
+
+        /* ───────────────── Code Blocks ───────────────── */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-block pre {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+        .code-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .code-label-old { color: var(--red); }
+        .code-label-new { color: var(--green); }
+        .code-label-config { color: var(--purple); }
+        .code-label-usage { color: var(--cyan); }
+
+        /* Syntax highlighting */
+        .kw { color: var(--purple); }
+        .fn { color: var(--cyan); }
+        .str { color: var(--green); }
+        .cm { color: var(--text-dim); font-style: italic; }
+        .num { color: var(--amber); }
+        .ann { color: var(--amber); }
+        .type { color: var(--cyan); }
+
+        /* ───────────────── Code Comparison ───────────────── */
+        .code-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 32px 0;
+        }
+
+        /* ───────────────── Callout Cards ───────────────── */
+        .callout {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin: 32px 0;
+            position: relative;
+        }
+        .callout-problem {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(239, 68, 68, 0.02));
+        }
+        .callout-solution {
+            border-color: rgba(34, 197, 94, 0.3);
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.05), rgba(34, 197, 94, 0.02));
+        }
+        .callout-info {
+            border-color: rgba(168, 85, 247, 0.3);
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.05), rgba(168, 85, 247, 0.02));
+        }
+
+        /* ───────────────── Pain Points List ───────────────── */
+        .pain-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+        .pain-list li {
+            padding: 10px 0;
+            padding-left: 28px;
+            position: relative;
+            font-size: 1rem;
+        }
+        .pain-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 18px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .pain-list.problems li::before { background: var(--red); opacity: 0.6; }
+        .pain-list.benefits li::before { background: var(--green); opacity: 0.6; }
+
+        /* ───────────────── Approach Cards ───────────────── */
+        .approach-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 32px 0;
+        }
+        .approach-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+        }
+        .approach-card .approach-era {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .approach-card .approach-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            margin-bottom: 8px;
+        }
+        .approach-card .approach-status {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        .status-deprecated {
+            color: var(--red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        .status-complex {
+            color: var(--amber);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .status-external {
+            color: var(--text-dim);
+            background: rgba(96, 96, 128, 0.2);
+        }
+        .status-native {
+            color: var(--green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        /* ───────────────── Divider ───────────────── */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 40px 0;
+        }
+
+        /* ───────────────── Sources ───────────────── */
+        .sources {
+            margin: 40px 0;
+        }
+        .source-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .source-list li a {
+            color: var(--cyan);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+            border-bottom: 1px solid transparent;
+        }
+        .source-list li a:hover {
+            color: var(--text-bright);
+            border-bottom-color: var(--cyan);
+        }
+        .source-list li .source-desc {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            margin-left: 4px;
+        }
+
+        /* ───────────────── Responsive ───────────────── */
+        @media (max-width: 768px) {
+            .container { padding: 0 20px; }
+            section { padding: 60px 0; }
+            .code-comparison { grid-template-columns: 1fr; }
+            .approach-grid { grid-template-columns: 1fr; }
+            .back-link { top: 14px; left: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="progress-bar" id="progressBar"></div>
+<a href="index.html" class="back-link"><span class="arrow-left">&larr;</span> Back to overview</a>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section id="hero">
+    <div class="hero-content">
+        <p class="eyebrow">Spring Boot 4 &middot; Spring Framework 7</p>
+        <h1>Declarative<br><span>HTTP Clients</span></h1>
+        <p class="subtitle">Type-safe, interface-driven HTTP calls &mdash; no boilerplate, no third-party libraries, no ceremony.</p>
+        <div class="scroll-hint">
+            <span>Scroll to explore</span><br>
+            <div class="arrow"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ CONTEXT ═══════════════ -->
+<section id="context">
+    <div class="container">
+        <div class="scene" data-scene>
+            <h2>The problem</h2>
+            <div class="narrative">
+                <p>Calling external APIs is one of the most common tasks in microservices. For years the Java/Spring ecosystem offered three main approaches &mdash; each with real trade-offs:</p>
+            </div>
+
+            <div class="approach-grid" style="margin-top: 40px;">
+                <div class="approach-card">
+                    <span class="approach-era" style="color: var(--red);">Spring 3 &ndash; 5</span>
+                    <div class="approach-name">RestTemplate</div>
+                    <p style="font-size: 0.85rem; color: var(--text-dim);">Verbose, imperative, manual error handling. Officially deprecated in favor of WebClient.</p>
+                    <span class="approach-status status-deprecated">Deprecated</span>
+                </div>
+                <div class="approach-card">
+                    <span class="approach-era" style="color: var(--amber);">Spring 5+</span>
+                    <div class="approach-name">WebClient</div>
+                    <p style="font-size: 0.85rem; color: var(--text-dim);">Reactive-first design. Powerful, but overkill for simple synchronous GET/POST calls.</p>
+                    <span class="approach-status status-complex">Reactive overhead</span>
+                </div>
+                <div class="approach-card">
+                    <span class="approach-era" style="color: var(--text-dim);">Netflix / OpenFeign</span>
+                    <div class="approach-name">Feign</div>
+                    <p style="font-size: 0.85rem; color: var(--text-dim);">Declarative and clean &mdash; but a third-party dependency with its own annotation model.</p>
+                    <span class="approach-status status-external">Third-party</span>
+                </div>
+            </div>
+
+            <div class="narrative" style="margin-top: 32px;">
+                <p>Spring Boot 4 brings a <strong>native, type-safe alternative</strong>: declare an interface, annotate it, and let Spring generate the implementation. No RestTemplate. No reactive chain. No extra dependency.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ OLD WAY — RestTemplate ═══════════════ -->
+<section id="old-way">
+    <div class="container">
+        <div class="scene section-old" data-scene>
+            <span class="section-number">The old way</span>
+            <h2>RestTemplate &amp; WebClient</h2>
+            <p class="narrative">The imperative approach requires URL strings, manual header setup, ResponseEntity unwrapping, and explicit error handling. Even a simple GET becomes ceremony.</p>
+
+            <div class="code-block" style="margin-top: 32px;">
+                <span class="code-label code-label-old">RestTemplate &mdash; verbose imperative</span>
+<pre>
+<span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="type">TodoServiceImpl</span> {
+
+    <span class="kw">private final</span> <span class="type">RestTemplate</span> restTemplate;
+    <span class="kw">private final</span> <span class="type">String</span> baseUrl = <span class="str">"https://jsonplaceholder.typicode.com"</span>;
+
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">Todo</span>&gt; <span class="fn">findAll</span>() {
+        <span class="type">ResponseEntity</span>&lt;<span class="type">Todo</span>[]&gt; response = restTemplate.<span class="fn">exchange</span>(
+            baseUrl + <span class="str">"/todos"</span>,
+            <span class="type">HttpMethod</span>.GET,
+            <span class="kw">null</span>,
+            <span class="type">Todo</span>[].<span class="kw">class</span>
+        );
+        <span class="kw">if</span> (!response.<span class="fn">getStatusCode</span>().<span class="fn">is2xxSuccessful</span>()) {
+            <span class="kw">throw new</span> <span class="type">RuntimeException</span>(<span class="str">"Failed: "</span> + response.<span class="fn">getStatusCode</span>());
+        }
+        <span class="kw">return</span> <span class="type">Arrays</span>.<span class="fn">asList</span>(response.<span class="fn">getBody</span>());
+    }
+
+    <span class="kw">public</span> <span class="type">Todo</span> <span class="fn">findById</span>(<span class="type">Integer</span> id) {
+        <span class="kw">return</span> restTemplate.<span class="fn">getForObject</span>(
+            baseUrl + <span class="str">"/todos/{id}"</span>,
+            <span class="type">Todo</span>.<span class="kw">class</span>,
+            id
+        );
+    }
+
+    <span class="kw">public</span> <span class="type">Todo</span> <span class="fn">create</span>(<span class="type">Todo</span> todo) {
+        <span class="type">HttpHeaders</span> headers = <span class="kw">new</span> <span class="type">HttpHeaders</span>();
+        headers.<span class="fn">setContentType</span>(<span class="type">MediaType</span>.APPLICATION_JSON);
+        <span class="type">HttpEntity</span>&lt;<span class="type">Todo</span>&gt; request = <span class="kw">new</span> <span class="type">HttpEntity</span>&lt;&gt;(todo, headers);
+        <span class="kw">return</span> restTemplate.<span class="fn">postForObject</span>(
+            baseUrl + <span class="str">"/todos"</span>, request, <span class="type">Todo</span>.<span class="kw">class</span>
+        );
+    }
+}
+</pre>
+            </div>
+
+            <div class="code-block" style="margin-top: 24px;">
+                <span class="code-label code-label-old">WebClient &mdash; reactive chain for a synchronous call</span>
+<pre>
+<span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">Todo</span>&gt; <span class="fn">findAll</span>() {
+    <span class="kw">return</span> webClient.<span class="fn">get</span>()
+        .<span class="fn">uri</span>(<span class="str">"/todos"</span>)
+        .<span class="fn">retrieve</span>()
+        .<span class="fn">bodyToFlux</span>(<span class="type">Todo</span>.<span class="kw">class</span>)
+        .<span class="fn">collectList</span>()
+        .<span class="fn">block</span>();  <span class="cm">// blocking in a reactive chain — defeats the purpose</span>
+}
+</pre>
+            </div>
+
+            <div class="callout callout-problem" style="margin-top: 32px;">
+                <h3 style="color: var(--red);">What hurts</h3>
+                <ul class="pain-list problems">
+                    <li><strong>URL strings everywhere</strong> &mdash; typos become runtime errors</li>
+                    <li><strong>Manual deserialization</strong> &mdash; ResponseEntity unwrapping, type tokens</li>
+                    <li><strong>Error handling boilerplate</strong> &mdash; every call needs status checks</li>
+                    <li><strong>HTTP leaks into business logic</strong> &mdash; headers, methods, URIs scattered through service code</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ NEW WAY — @HttpExchange ═══════════════ -->
+<section id="new-way">
+    <div class="container">
+        <div class="scene section-new" data-scene>
+            <span class="section-number">The new way</span>
+            <h2>@HttpExchange interfaces</h2>
+            <p class="narrative">Define an interface. Annotate the methods. Spring generates the implementation at startup. You get a type-safe client with zero boilerplate.</p>
+
+            <div class="code-block" style="margin-top: 32px;">
+                <span class="code-label code-label-new">The entire HTTP client &mdash; that's it</span>
+<pre>
+<span class="ann">@HttpExchange</span>(<span class="str">"/todos"</span>)
+<span class="kw">public interface</span> <span class="type">TodoService</span> {
+
+    <span class="ann">@GetExchange</span>
+    <span class="type">List</span>&lt;<span class="type">Todo</span>&gt; <span class="fn">findAll</span>();
+
+    <span class="ann">@GetExchange</span>(<span class="str">"/{id}"</span>)
+    <span class="type">Todo</span> <span class="fn">findById</span>(<span class="ann">@PathVariable</span> <span class="type">Integer</span> id);
+
+    <span class="ann">@PostExchange</span>
+    <span class="type">Todo</span> <span class="fn">create</span>(<span class="ann">@RequestBody</span> <span class="type">Todo</span> todo);
+
+    <span class="ann">@DeleteExchange</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">void</span> <span class="fn">delete</span>(<span class="ann">@PathVariable</span> <span class="type">Integer</span> id);
+}
+</pre>
+            </div>
+
+            <div class="callout callout-solution" style="margin-top: 32px;">
+                <h3 style="color: var(--green);">What you get</h3>
+                <ul class="pain-list benefits">
+                    <li><strong>Type-safe</strong> &mdash; method signatures are the contract, not URL strings</li>
+                    <li><strong>Familiar annotations</strong> &mdash; @PathVariable, @RequestBody, @RequestHeader &mdash; same as server-side controllers</li>
+                    <li><strong>Zero implementation code</strong> &mdash; Spring generates the proxy from the interface</li>
+                    <li><strong>Testable</strong> &mdash; mock the interface like any other Spring service</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ CONFIGURATION ═══════════════ -->
+<section id="config">
+    <div class="container">
+        <div class="scene section-config" data-scene>
+            <span class="section-number">Configuration</span>
+            <h2>@ImportHttpServices</h2>
+            <p class="narrative">In earlier Spring 6 previews, wiring up an HTTP interface required manual <code style="color: var(--cyan);">HttpServiceProxyFactory</code> boilerplate &mdash; creating a RestClient, wrapping it in an adapter, building the factory, calling <code style="color: var(--cyan);">createClient()</code>. Spring Boot 4 eliminates all of it.</p>
+
+            <div class="code-comparison" style="margin-top: 32px;">
+                <div class="code-block">
+                    <span class="code-label code-label-old">Before &mdash; manual proxy factory (Spring 6)</span>
+<pre>
+<span class="ann">@Configuration</span>
+<span class="kw">public class</span> <span class="type">HttpClientConfig</span> {
+
+    <span class="ann">@Bean</span>
+    <span class="type">TodoService</span> <span class="fn">todoService</span>() {
+        <span class="type">RestClient</span> client = <span class="type">RestClient</span>.<span class="fn">builder</span>()
+            .<span class="fn">baseUrl</span>(<span class="str">"https://jsonplaceholder.typicode.com"</span>)
+            .<span class="fn">build</span>();
+
+        <span class="type">RestClientAdapter</span> adapter =
+            <span class="type">RestClientAdapter</span>.<span class="fn">create</span>(client);
+
+        <span class="type">HttpServiceProxyFactory</span> factory =
+            <span class="type">HttpServiceProxyFactory</span>.<span class="fn">builderFor</span>(adapter)
+                .<span class="fn">build</span>();
+
+        <span class="kw">return</span> factory.<span class="fn">createClient</span>(
+            <span class="type">TodoService</span>.<span class="kw">class</span>
+        );
+    }
+}
+</pre>
+                </div>
+
+                <div class="code-block">
+                    <span class="code-label code-label-new">After &mdash; @ImportHttpServices (Spring Boot 4)</span>
+<pre>
+<span class="ann">@Configuration</span>
+<span class="ann">@ImportHttpServices</span>(
+    types = { <span class="type">TodoService</span>.<span class="kw">class</span> }
+)
+<span class="kw">public class</span> <span class="type">HttpClientConfig</span> {
+
+    <span class="ann">@Bean</span>
+    <span class="type">RestClientHttpServiceGroupConfigurer</span> <span class="fn">configurer</span>() {
+        <span class="kw">return</span> (clientBuilder, group) -&gt; {
+            clientBuilder.<span class="fn">baseUrl</span>(
+                <span class="str">"https://jsonplaceholder.typicode.com"</span>
+            );
+        };
+    }
+}
+</pre>
+                </div>
+            </div>
+
+            <div class="callout callout-info" style="margin-top: 32px;">
+                <h3 style="color: var(--purple);">Groups</h3>
+                <p style="font-size: 1rem;">The <code style="color: var(--cyan);">RestClientHttpServiceGroupConfigurer</code> receives a group context, so you can configure <strong>multiple HTTP clients at once</strong> &mdash; shared base URL, default headers, timeouts, error handlers. Each @HttpExchange interface becomes a Spring bean automatically.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ USING IT ═══════════════ -->
+<section id="usage">
+    <div class="container">
+        <div class="scene section-usage" data-scene>
+            <span class="section-number">Using it</span>
+            <h2>Just inject and call</h2>
+            <p class="narrative">The controller has no idea it's making HTTP calls. It injects TodoService like any other Spring service and calls methods on it. <strong>No HTTP details leak into business code.</strong></p>
+
+            <div class="code-block" style="margin-top: 32px;">
+                <span class="code-label code-label-usage">A controller that calls an external API</span>
+<pre>
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/api/todos"</span>)
+<span class="kw">public class</span> <span class="type">TodoController</span> {
+
+    <span class="kw">private final</span> <span class="type">TodoService</span> todoService;
+
+    <span class="kw">public</span> <span class="fn">TodoController</span>(<span class="type">TodoService</span> todoService) {
+        <span class="kw">this</span>.todoService = todoService;
+    }
+
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">Todo</span>&gt; <span class="fn">all</span>() {
+        <span class="kw">return</span> todoService.<span class="fn">findAll</span>();
+    }
+
+    <span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> <span class="type">Todo</span> <span class="fn">byId</span>(<span class="ann">@PathVariable</span> <span class="type">Integer</span> id) {
+        <span class="kw">return</span> todoService.<span class="fn">findById</span>(id);
+    }
+
+    <span class="ann">@PostMapping</span>
+    <span class="kw">public</span> <span class="type">Todo</span> <span class="fn">create</span>(<span class="ann">@RequestBody</span> <span class="type">Todo</span> todo) {
+        <span class="kw">return</span> todoService.<span class="fn">create</span>(todo);
+    }
+}
+</pre>
+            </div>
+
+            <div class="callout callout-solution" style="margin-top: 32px;">
+                <h3 style="color: var(--green);">Why this matters</h3>
+                <p style="font-size: 1rem;">The controller above looks identical whether TodoService is backed by a database, an in-memory list, or an HTTP call to a remote API. <strong>The abstraction is the interface</strong> &mdash; swapping implementations is trivial, and testing requires nothing more than a mock.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ FULL COMPARISON ═══════════════ -->
+<section id="comparison">
+    <div class="container">
+        <div class="scene" data-scene>
+            <h2>Side by side</h2>
+            <p class="narrative">The full picture: what it took before vs. what it takes now.</p>
+
+            <div class="code-comparison" style="margin-top: 32px;">
+                <div class="code-block">
+                    <span class="code-label code-label-old">Before &mdash; RestTemplate</span>
+<pre>
+<span class="cm">// Configuration</span>
+<span class="ann">@Bean</span>
+<span class="type">RestTemplate</span> <span class="fn">restTemplate</span>() {
+    <span class="kw">return new</span> <span class="type">RestTemplateBuilder</span>()
+        .<span class="fn">rootUri</span>(<span class="str">"https://api.example.com"</span>)
+        .<span class="fn">defaultHeader</span>(<span class="str">"Accept"</span>, <span class="str">"application/json"</span>)
+        .<span class="fn">setConnectTimeout</span>(<span class="type">Duration</span>.<span class="fn">ofSeconds</span>(<span class="num">5</span>))
+        .<span class="fn">build</span>();
+}
+
+<span class="cm">// Usage in service</span>
+<span class="type">HttpHeaders</span> headers = <span class="kw">new</span> <span class="type">HttpHeaders</span>();
+headers.<span class="fn">setContentType</span>(<span class="type">MediaType</span>.APPLICATION_JSON);
+
+<span class="type">ResponseEntity</span>&lt;<span class="type">Todo</span>[]&gt; response =
+    restTemplate.<span class="fn">exchange</span>(
+        <span class="str">"/todos"</span>,
+        <span class="type">HttpMethod</span>.GET,
+        <span class="kw">new</span> <span class="type">HttpEntity</span>&lt;&gt;(headers),
+        <span class="type">Todo</span>[].<span class="kw">class</span>
+    );
+
+<span class="kw">if</span> (response.<span class="fn">getStatusCode</span>().<span class="fn">is2xxSuccessful</span>()) {
+    <span class="kw">return</span> <span class="type">Arrays</span>.<span class="fn">asList</span>(response.<span class="fn">getBody</span>());
+} <span class="kw">else</span> {
+    <span class="kw">throw new</span> <span class="type">ApiException</span>(
+        response.<span class="fn">getStatusCode</span>()
+    );
+}
+</pre>
+                </div>
+
+                <div class="code-block">
+                    <span class="code-label code-label-new">After &mdash; @HttpExchange</span>
+<pre>
+<span class="cm">// Interface definition</span>
+<span class="ann">@HttpExchange</span>(<span class="str">"/todos"</span>)
+<span class="kw">public interface</span> <span class="type">TodoService</span> {
+    <span class="ann">@GetExchange</span>
+    <span class="type">List</span>&lt;<span class="type">Todo</span>&gt; <span class="fn">findAll</span>();
+}
+
+<span class="cm">// Configuration</span>
+<span class="ann">@Configuration</span>
+<span class="ann">@ImportHttpServices</span>(
+    types = { <span class="type">TodoService</span>.<span class="kw">class</span> }
+)
+<span class="kw">public class</span> <span class="type">HttpClientConfig</span> {
+    <span class="ann">@Bean</span>
+    <span class="type">RestClientHttpServiceGroupConfigurer</span>
+    <span class="fn">configurer</span>() {
+        <span class="kw">return</span> (clientBuilder, group) -&gt;
+            clientBuilder.<span class="fn">baseUrl</span>(
+                <span class="str">"https://api.example.com"</span>
+            );
+    }
+}
+
+<span class="cm">// Usage — that's literally it</span>
+<span class="kw">return</span> todoService.<span class="fn">findAll</span>();
+
+
+</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ SOURCES ═══════════════ -->
+<section id="sources" class="auto-height">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="section-divider"></div>
+            <div class="sources">
+                <h3>Sources &amp; further reading</h3>
+                <ul class="source-list">
+                    <li>
+                        <a href="https://www.danvega.dev/blog/http-interfaces-spring-boot-4" target="_blank" rel="noopener">Dan Vega &mdash; HTTP Interfaces in Spring Boot 4</a>
+                        <span class="source-desc">&mdash; Hands-on walkthrough with @ImportHttpServices and group configurers</span>
+                    </li>
+                    <li>
+                        <a href="https://spring.io/blog/2025/09/23/http-service-client-enhancements/" target="_blank" rel="noopener">Spring.io Blog &mdash; HTTP Service Client Enhancements</a>
+                        <span class="source-desc">&mdash; Official announcement of the new configuration model</span>
+                    </li>
+                    <li>
+                        <a href="https://www.baeldung.com/spring-6-http-interface" target="_blank" rel="noopener">Baeldung &mdash; Spring 6 HTTP Interface</a>
+                        <span class="source-desc">&mdash; Foundation concepts behind @HttpExchange (Spring 6 origins)</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+(function() {
+    'use strict';
+
+    // ── Progress Bar ──
+    const progressBar = document.getElementById('progressBar');
+    function updateProgress() {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        progressBar.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive: true });
+
+    // ── Scene Visibility (IntersectionObserver) ──
+    const sceneObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('[data-scene]').forEach(scene => {
+        sceneObserver.observe(scene);
+    });
+
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Versioning — Spring Boot 4 & Spring Framework 7</title>
+    <style>
+        /* ───────────────── Variables ───────────────── */
+        :root {
+            --bg: #0a0a1a;
+            --bg-light: #10102a;
+            --bg-card: #161638;
+            --bg-code: #1a1a3e;
+            --text: #c0c0d0;
+            --text-bright: #f0f0ff;
+            --text-dim: #606080;
+            --border: #2a2a4a;
+
+            --cyan: #00d4ff;
+            --purple: #a855f7;
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --blue: #3b82f6;
+            --gray: #4b5563;
+
+            --font: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+        }
+
+        /* ───────────────── Reset & Base ───────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            font-size: 18px;
+            overflow-x: hidden;
+        }
+
+        /* ───────────────── Progress Bar ───────────────── */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--amber), var(--green), var(--cyan));
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.1s linear;
+        }
+
+        /* ───────────────── Back Link ───────────────── */
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 24px;
+            z-index: 100;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-link:hover { color: var(--text-bright); }
+        .back-link .arrow { display: inline-block; transition: transform 0.2s ease; }
+        .back-link:hover .arrow { transform: translateX(-3px); }
+
+        /* ───────────────── Nav Dots ───────────────── */
+        .nav-dots {
+            position: fixed;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid var(--text-dim);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .nav-dot.active {
+            border-color: var(--amber);
+            background: var(--amber);
+            box-shadow: 0 0 8px var(--amber);
+        }
+
+        /* ───────────────── Layout ───────────────── */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 100px 0;
+        }
+        .scene {
+            padding: 32px 0;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .scene.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ───────────────── Typography ───────────────── */
+        h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 800;
+            color: var(--text-bright);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+        h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--text-bright);
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-bottom: 12px;
+        }
+        .eyebrow {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        .narrative {
+            font-size: 1.15rem;
+            max-width: 680px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+        .narrative strong { color: var(--text-bright); }
+
+        /* ───────────────── Hero ───────────────── */
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+        #hero .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        #hero .eyebrow { color: var(--amber); }
+        #hero h1 span {
+            background: linear-gradient(135deg, var(--amber), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .scroll-hint {
+            margin-top: 60px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            animation: float 2s ease-in-out infinite;
+        }
+        .scroll-hint .arrow {
+            display: inline-block;
+            margin-top: 8px;
+            width: 20px;
+            height: 20px;
+            border-right: 2px solid var(--text-dim);
+            border-bottom: 2px solid var(--text-dim);
+            transform: rotate(45deg);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        /* ───────────────── Background Grid ───────────────── */
+        .bg-grid {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ───────────────── Code Blocks ───────────────── */
+        .code-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 32px 0;
+        }
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-block pre {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+        .code-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .code-label-old { color: var(--red); }
+        .code-label-new { color: var(--green); }
+        .code-label-config { color: var(--cyan); }
+
+        /* Syntax highlighting */
+        .kw { color: var(--purple); }
+        .fn { color: var(--cyan); }
+        .str { color: var(--green); }
+        .cm { color: var(--text-dim); font-style: italic; }
+        .num { color: var(--amber); }
+        .ann { color: var(--amber); }
+        .type { color: var(--cyan); }
+
+        /* ───────────────── Strategy Table ───────────────── */
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin: 32px 0;
+        }
+        .strategy-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+        .strategy-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .strategy-card h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            margin-bottom: 8px;
+        }
+        .strategy-card .strategy-example {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--amber);
+            background: rgba(245, 158, 11, 0.08);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: block;
+        }
+        .strategy-card p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+        .strategy-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        /* ───────────────── Callout ───────────────── */
+        .callout {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(0, 212, 255, 0.08));
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 16px;
+            padding: 32px;
+            margin: 40px 0;
+        }
+        .callout h3 { color: var(--green); }
+        .callout ul {
+            list-style: none;
+            margin-top: 16px;
+        }
+        .callout ul li {
+            font-size: 0.95rem;
+            padding: 6px 0;
+            position: relative;
+            padding-left: 24px;
+        }
+        .callout ul li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 14px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            opacity: 0.6;
+        }
+
+        /* ───────────────── Divider ───────────────── */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin: 40px 0;
+        }
+
+        /* ───────────────── Sources ───────────────── */
+        .sources {
+            margin-top: 32px;
+        }
+        .sources h3 { color: var(--text-dim); font-size: 1.1rem; }
+        .sources ul {
+            list-style: none;
+            margin-top: 12px;
+        }
+        .sources ul li {
+            margin-bottom: 10px;
+        }
+        .sources ul li a {
+            color: var(--cyan);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+        .sources ul li a:hover {
+            color: var(--text-bright);
+            text-decoration: underline;
+        }
+        .sources ul li .source-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        /* ───────────────── Responsive ───────────────── */
+        @media (max-width: 768px) {
+            .container { padding: 0 20px; }
+            section { padding: 60px 0; }
+            .code-comparison { grid-template-columns: 1fr; }
+            .strategy-grid { grid-template-columns: 1fr; }
+            .nav-dots { display: none; }
+            .back-link { top: 12px; left: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<a href="index.html" class="back-link">
+    <span class="arrow">&larr;</span> Back to overview
+</a>
+
+<nav class="nav-dots" id="navDots">
+    <div class="nav-dot active" data-target="hero" title="Intro"></div>
+    <div class="nav-dot" data-target="context" title="Context"></div>
+    <div class="nav-dot" data-target="old-way" title="Old Way"></div>
+    <div class="nav-dot" data-target="new-way" title="New Way"></div>
+    <div class="nav-dot" data-target="configuration" title="Configuration"></div>
+    <div class="nav-dot" data-target="strategies" title="Strategies"></div>
+    <div class="nav-dot" data-target="client-support" title="Client Support"></div>
+    <div class="nav-dot" data-target="comparison" title="Comparison"></div>
+    <div class="nav-dot" data-target="sources-section" title="Sources"></div>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section id="hero">
+    <div class="hero-content">
+        <p class="eyebrow">Spring Boot 4 &middot; Spring Framework 7</p>
+        <h1>API<br><span>Versioning</span></h1>
+        <p class="subtitle">First-class versioning support built directly into Spring MVC — no hacks, no third-party libraries, no duplicate controllers.</p>
+        <div class="scroll-hint">
+            <span>Scroll to explore</span><br>
+            <div class="arrow"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ CONTEXT ═══════════════ -->
+<section id="context">
+    <div class="container">
+        <div class="scene" data-scene>
+            <p class="eyebrow" style="color: var(--text-dim);">The backstory</p>
+            <h2>Versioning was always a pain</h2>
+            <div class="narrative" style="margin-top: 24px;">
+                <p>API versioning has always been a pain in Spring. There was <strong>no built-in support</strong>, which meant every team rolled their own solution. Some hardcoded <code>/v1/</code> in request paths. Others wrote custom <code>RequestCondition</code> implementations. A few pulled in third-party libraries that were inevitably abandoned.</p>
+                <p style="margin-top: 16px;">Every project did it differently. There was no standard, no convention, and no framework guidance. The result: inconsistent APIs, duplicated controller classes, and routing logic scattered across annotation values, request matchers, and configuration files.</p>
+                <p style="margin-top: 16px;">Spring Framework 7 finally treats API versioning as a <strong>first-class concern</strong>. It adds a <code>version</code> attribute directly to the request mapping annotations, plus a configuration API for choosing how versions travel over the wire.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ OLD WAY ═══════════════ -->
+<div id="old-way" class="container">
+    <div class="scene" data-scene>
+        <p class="eyebrow" style="color: var(--red);">The old way</p>
+        <h2>Manual versioning in paths</h2>
+        <p style="max-width: 680px; margin-bottom: 24px;">Without framework support, the most common approach was to bake the version directly into the URL path. This meant separate controller classes (or at least separate methods with duplicated paths), no shared routing logic, and version strings scattered as raw text throughout the codebase.</p>
+
+        <div class="code-block">
+            <span class="code-label code-label-old">Before &mdash; version in path strings</span>
+            <pre>
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/v1/users"</span>)
+<span class="kw">public class</span> <span class="type">UserControllerV1</span> {
+
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV1</span>&gt; <span class="fn">getUsers</span>() {
+        <span class="cm">// V1 implementation</span>
+        <span class="kw">return</span> userService.<span class="fn">getAllUsersV1</span>();
+    }
+}
+
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/v2/users"</span>)
+<span class="kw">public class</span> <span class="type">UserControllerV2</span> {
+
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV2</span>&gt; <span class="fn">getUsers</span>() {
+        <span class="cm">// V2 implementation — different shape</span>
+        <span class="kw">return</span> userService.<span class="fn">getAllUsersV2</span>();
+    }
+}
+
+<span class="cm">// Duplicate controllers, no shared routing,</span>
+<span class="cm">// version scattered as raw text in annotations</span></pre>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ NEW WAY ═══════════════ -->
+<section id="new-way">
+    <div class="container">
+        <div class="scene" data-scene>
+            <p class="eyebrow" style="color: var(--green);">The new way</p>
+            <h2>The <code style="color: var(--amber);">version</code> attribute</h2>
+            <p style="max-width: 680px; margin-bottom: 24px;">Spring Framework 7 adds a <code>version</code> attribute to <code>@GetMapping</code>, <code>@PostMapping</code>, and all the other request mapping annotations. One controller, one path, multiple versions. The framework handles the routing.</p>
+
+            <div class="code-block">
+                <span class="code-label code-label-new">After &mdash; framework-managed versioning</span>
+                <pre>
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/users"</span>)
+<span class="kw">public class</span> <span class="type">UserController</span> {
+
+    <span class="ann">@GetMapping</span>(version = <span class="str">"1.0"</span>)
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV1</span>&gt; <span class="fn">getUsersV1</span>() {
+        <span class="kw">return</span> userService.<span class="fn">getAllUsersV1</span>();
+    }
+
+    <span class="ann">@GetMapping</span>(version = <span class="str">"2.0"</span>)
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV2</span>&gt; <span class="fn">getUsersV2</span>() {
+        <span class="kw">return</span> userService.<span class="fn">getAllUsersV2</span>();
+    }
+}</pre>
+            </div>
+
+            <p style="max-width: 680px; margin-top: 24px; color: var(--text-dim);">No duplicate controllers. No version in the path string. The <code>version</code> attribute is a semantic declaration — the framework decides how it maps to the wire protocol based on your configuration.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ CONFIGURATION ═══════════════ -->
+<section id="configuration">
+    <div class="container">
+        <div class="scene" data-scene>
+            <p class="eyebrow" style="color: var(--cyan);">Configuration</p>
+            <h2>ApiVersionConfigurer</h2>
+            <p style="max-width: 680px; margin-bottom: 24px;">You configure the versioning strategy through <code>WebMvcConfigurer</code>. Choose how versions travel over the wire, declare supported versions, and set a default. The configurer supports four strategies: <strong>path segment</strong>, <strong>header</strong>, <strong>query parameter</strong>, and <strong>media type</strong>.</p>
+
+            <div class="code-block">
+                <span class="code-label code-label-config">WebMvcConfigurer &mdash; versioning setup</span>
+                <pre>
+<span class="ann">@Configuration</span>
+<span class="kw">public class</span> <span class="type">WebConfig</span> <span class="kw">implements</span> <span class="type">WebMvcConfigurer</span> {
+
+    <span class="ann">@Override</span>
+    <span class="kw">public void</span> <span class="fn">configureApiVersioning</span>(<span class="type">ApiVersionConfigurer</span> configurer) {
+        configurer
+            .<span class="fn">usePathSegment</span>(<span class="num">1</span>)
+            .<span class="fn">addSupportedVersions</span>(<span class="str">"1.0"</span>, <span class="str">"2.0"</span>)
+            .<span class="fn">setDefaultVersion</span>(<span class="str">"1.0"</span>);
+    }
+}</pre>
+            </div>
+
+            <p style="max-width: 680px; margin-top: 24px; color: var(--text-dim);">The <code>usePathSegment(1)</code> call means the version is extracted from position 1 in the path (e.g., <code>/v1/users</code>). Swap it for <code>useHeader()</code>, <code>useQueryParameter()</code>, or <code>useMediaType()</code> to change the strategy without touching your controllers.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ STRATEGIES ═══════════════ -->
+<section id="strategies">
+    <div class="container">
+        <div class="scene" data-scene>
+            <p class="eyebrow" style="color: var(--amber);">Wire protocols</p>
+            <h2>Four strategies, one API</h2>
+            <p style="max-width: 680px; margin-bottom: 8px;">The version attribute on your controller stays the same. Only the configurer changes. Here are the four supported strategies:</p>
+
+            <div class="strategy-grid" id="strategyGrid">
+                <div class="strategy-card" data-card>
+                    <span class="strategy-icon">&#128279;</span>
+                    <h4>Path Segment</h4>
+                    <p>Version embedded in the URL path at a configured position.</p>
+                    <code class="strategy-example">GET /v1/users</code>
+                </div>
+                <div class="strategy-card" data-card>
+                    <span class="strategy-icon">&#128233;</span>
+                    <h4>Custom Header</h4>
+                    <p>Version sent as a request header, keeping the URL clean.</p>
+                    <code class="strategy-example">X-API-Version: 1</code>
+                </div>
+                <div class="strategy-card" data-card>
+                    <span class="strategy-icon">&#128269;</span>
+                    <h4>Query Parameter</h4>
+                    <p>Version as a query string parameter. Easy to test in browsers.</p>
+                    <code class="strategy-example">GET /users?version=1</code>
+                </div>
+                <div class="strategy-card" data-card>
+                    <span class="strategy-icon">&#128230;</span>
+                    <h4>Media Type</h4>
+                    <p>Version negotiated through the Accept header using vendor types.</p>
+                    <code class="strategy-example">Accept: application/vnd.app.v1+json</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ CLIENT SUPPORT ═══════════════ -->
+<section id="client-support">
+    <div class="container">
+        <div class="scene" data-scene>
+            <p class="eyebrow" style="color: var(--green);">Client side</p>
+            <h2>RestClient, WebClient &amp; HTTP interfaces</h2>
+
+            <div class="callout">
+                <h3>Built-in client support</h3>
+                <ul>
+                    <li><strong>ApiVersionInserter</strong> &mdash; a shared component used by <code>RestClient</code>, <code>WebClient</code>, and HTTP interface clients to automatically insert the version into outgoing requests, matching whatever strategy the server uses.</li>
+                    <li><strong>HTTP interface clients</strong> &mdash; the <code>@HttpExchange</code>-based declarative clients pick up version configuration automatically. No manual header or path manipulation.</li>
+                    <li><strong>Deprecation handling (RFC 9745)</strong> &mdash; Spring can signal that an API version is deprecated using the standard <code>Deprecation</code> HTTP header, so clients get a machine-readable deprecation notice.</li>
+                </ul>
+            </div>
+
+            <div class="code-block" style="margin-top: 24px;">
+                <span class="code-label code-label-config">ApiVersionInserter with RestClient</span>
+                <pre>
+<span class="type">ApiVersionInserter</span> inserter = <span class="type">ApiVersionInserter</span>
+    .<span class="fn">useHeader</span>(<span class="str">"X-API-Version"</span>);
+
+<span class="type">RestClient</span> client = <span class="type">RestClient</span>.<span class="fn">builder</span>()
+    .<span class="fn">baseUrl</span>(<span class="str">"https://api.example.com"</span>)
+    .<span class="fn">apiVersionInserter</span>(inserter)
+    .<span class="fn">build</span>();
+
+<span class="cm">// Requests automatically include X-API-Version header</span>
+<span class="type">List</span>&lt;<span class="type">User</span>&gt; users = client.<span class="fn">get</span>()
+    .<span class="fn">uri</span>(<span class="str">"/users"</span>)
+    .<span class="fn">apiVersion</span>(<span class="str">"2.0"</span>)
+    .<span class="fn">retrieve</span>()
+    .<span class="fn">body</span>(<span class="kw">new</span> <span class="type">ParameterizedTypeReference</span>&lt;&gt;() {});</pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ COMPARISON ═══════════════ -->
+<section id="comparison">
+    <div class="container">
+        <div class="scene" data-scene>
+            <p class="eyebrow" style="color: var(--text-dim);">Side by side</p>
+            <h2>Before vs After</h2>
+
+            <div class="code-comparison">
+                <div class="code-block">
+                    <span class="code-label code-label-old">Before &mdash; Spring Boot 3</span>
+                    <pre>
+<span class="cm">// Two separate controllers</span>
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/v1/users"</span>)
+<span class="kw">public class</span> <span class="type">UserV1Controller</span> {
+
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV1</span>&gt; <span class="fn">list</span>() { ... }
+
+    <span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> <span class="type">UserV1</span> <span class="fn">get</span>(<span class="ann">@PathVariable</span> <span class="type">Long</span> id)
+        { ... }
+}
+
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/v2/users"</span>)
+<span class="kw">public class</span> <span class="type">UserV2Controller</span> {
+
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV2</span>&gt; <span class="fn">list</span>() { ... }
+
+    <span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> <span class="type">UserV2</span> <span class="fn">get</span>(<span class="ann">@PathVariable</span> <span class="type">Long</span> id)
+        { ... }
+}
+
+<span class="cm">// Duplicated classes, paths, logic</span>
+<span class="cm">// Version is just a string in the URL</span>
+<span class="cm">// No framework awareness of versions</span></pre>
+                </div>
+                <div class="code-block">
+                    <span class="code-label code-label-new">After &mdash; Spring Boot 4</span>
+                    <pre>
+<span class="cm">// One controller, clean paths</span>
+<span class="ann">@RestController</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/users"</span>)
+<span class="kw">public class</span> <span class="type">UserController</span> {
+
+    <span class="ann">@GetMapping</span>(version = <span class="str">"1.0"</span>)
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV1</span>&gt; <span class="fn">listV1</span>() { ... }
+
+    <span class="ann">@GetMapping</span>(version = <span class="str">"2.0"</span>)
+    <span class="kw">public</span> <span class="type">List</span>&lt;<span class="type">UserV2</span>&gt; <span class="fn">listV2</span>() { ... }
+
+    <span class="ann">@GetMapping</span>(value = <span class="str">"/{id}"</span>,
+               version = <span class="str">"1.0"</span>)
+    <span class="kw">public</span> <span class="type">UserV1</span> <span class="fn">getV1</span>(<span class="ann">@PathVariable</span> <span class="type">Long</span> id)
+        { ... }
+
+    <span class="ann">@GetMapping</span>(value = <span class="str">"/{id}"</span>,
+               version = <span class="str">"2.0"</span>)
+    <span class="kw">public</span> <span class="type">UserV2</span> <span class="fn">getV2</span>(<span class="ann">@PathVariable</span> <span class="type">Long</span> id)
+        { ... }
+}
+
+<span class="cm">// Framework manages version routing</span>
+<span class="cm">// Strategy configured in one place</span>
+<span class="cm">// Deprecation signaled via RFC 9745</span></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ SOURCES ═══════════════ -->
+<section id="sources-section">
+    <div class="container">
+        <div class="scene" data-scene>
+            <div class="section-divider"></div>
+            <div class="sources">
+                <h3>Sources &amp; further reading</h3>
+                <ul>
+                    <li>
+                        <a href="https://www.danvega.dev/blog/spring-boot-4-api-versioning" target="_blank" rel="noopener">API Versioning in Spring Boot 4 &mdash; Dan Vega</a>
+                        <span class="source-label">Walkthrough with practical examples of the new version attribute and configurer API.</span>
+                    </li>
+                    <li>
+                        <a href="https://spring.io/blog/2025/09/16/api-versioning-in-spring/" target="_blank" rel="noopener">API Versioning in Spring &mdash; Spring.io Blog</a>
+                        <span class="source-label">Official announcement covering the design rationale, supported strategies, and client-side support.</span>
+                    </li>
+                    <li>
+                        <a href="https://www.baeldung.com/spring-api-versioning" target="_blank" rel="noopener">API Versioning in Spring &mdash; Baeldung</a>
+                        <span class="source-label">Comprehensive tutorial comparing versioning strategies with Spring MVC code samples.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div style="margin-top: 48px; text-align: center;">
+                <a href="index.html" class="back-link" style="position: static; display: inline-flex; font-size: 0.9rem;">
+                    <span class="arrow">&larr;</span> Back to overview
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script>
+(function() {
+    'use strict';
+
+    // ── Progress Bar ──
+    const progressBar = document.getElementById('progressBar');
+    function updateProgress() {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        progressBar.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive: true });
+
+    // ── Nav Dots ──
+    const navDots = document.querySelectorAll('.nav-dot');
+    const sectionIds = [
+        'hero', 'context', 'old-way', 'new-way',
+        'configuration', 'strategies', 'client-support',
+        'comparison', 'sources-section'
+    ];
+
+    navDots.forEach(dot => {
+        dot.addEventListener('click', () => {
+            const target = document.getElementById(dot.dataset.target);
+            if (target) target.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    function updateNavDots() {
+        let current = 0;
+        sectionIds.forEach((id, i) => {
+            const el = document.getElementById(id);
+            if (el && window.scrollY >= el.offsetTop - 300) current = i;
+        });
+        navDots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === current);
+        });
+    }
+    window.addEventListener('scroll', updateNavDots, { passive: true });
+
+    // ── Scene Visibility (IntersectionObserver) ──
+    const sceneObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+
+                // Trigger strategy cards animation
+                if (entry.target.querySelector('#strategyGrid')) {
+                    animateStrategyCards();
+                }
+            }
+        });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('[data-scene]').forEach(scene => {
+        sceneObserver.observe(scene);
+    });
+
+    // ── Strategy Cards Animation ──
+    function animateStrategyCards() {
+        const cards = document.querySelectorAll('#strategyGrid .strategy-card');
+        cards.forEach((card, i) => {
+            setTimeout(() => card.classList.add('visible'), i * 150);
+        });
+    }
+
+})();
+</script>
+
+</body>
+</html>
