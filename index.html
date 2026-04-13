@@ -674,6 +674,36 @@
         }
         .task-parent-unstructured .parent-question.visible { opacity: 1; }
 
+        /* ───────────────── Replay Button ───────────────── */
+        .replay-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 5;
+            line-height: 1;
+        }
+        .replay-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-bright);
+            border-color: var(--text-dim);
+            transform: rotate(-45deg);
+        }
+        .replay-btn:active {
+            transform: rotate(-90deg) scale(0.95);
+        }
+
         /* ───────────────── Code Blocks ───────────────── */
         .code-comparison {
             display: grid;
@@ -931,6 +961,7 @@
 
         <div class="diagram" id="platformThreadDemo">
             <span class="diagram-label label-problem">The problem</span>
+            <button class="replay-btn" data-replay="platformThreads" title="Replay animation">&#8635;</button>
             <div class="thread-row" id="platformThreads">
                 <div class="thread-box thread-platform" data-block-delay="1500">
                     <span class="thread-name">Thread-1</span>
@@ -977,6 +1008,7 @@
 
         <div class="diagram" id="virtualThreadDemo">
             <span class="diagram-label label-solution">The solution</span>
+            <button class="replay-btn" data-replay="virtualThreads" title="Replay animation">&#8635;</button>
 
             <div class="vt-cloud" id="vtCloud">
                 <div class="vt-dot" style="animation-delay: 0s;"></div>
@@ -1078,7 +1110,7 @@
         <div class="act-header">
             <span class="act-number">Part 2</span>
             <h2>Scoped Values</h2>
-            <p class="subtitle">Immutable, scoped data sharing across threads — replacing ThreadLocal.</p>
+            <p class="subtitle">Immutable, scoped data sharing across threads — replacing ThreadLocal. <span style="font-size: 0.75rem; color: var(--green); border: 1px solid rgba(34,197,94,0.3); padding: 2px 8px; border-radius: 8px; margin-left: 8px;">Finalized in Java 25</span></p>
         </div>
     </div>
 
@@ -1088,6 +1120,7 @@
 
         <div class="diagram" id="threadLocalDemo">
             <span class="diagram-label label-problem">The problem</span>
+            <button class="replay-btn" data-replay="threadLocal" title="Replay animation">&#8635;</button>
             <div class="scope-diagram">
                 <div class="tl-parent" style="position: relative;">
                     ThreadLocal&lt;User&gt; = "Alice"
@@ -1120,6 +1153,7 @@
 
         <div class="diagram" id="scopedValueDemo">
             <span class="diagram-label label-solution">The solution</span>
+            <button class="replay-btn" data-replay="scopedValue" title="Replay animation">&#8635;</button>
             <div class="scope-boundary" id="scopeBoundary">
                 <span class="scope-boundary-label">ScopedValue.where(USER, "Alice").run(() -> { ... })</span>
                 <div class="scope-diagram">
@@ -1193,7 +1227,7 @@
         <div class="act-header">
             <span class="act-number">Part 3</span>
             <h2>Structured Concurrency</h2>
-            <p class="subtitle">Concurrent tasks as a single unit of work — no leaks, no orphans.</p>
+            <p class="subtitle">Concurrent tasks as a single unit of work — no leaks, no orphans. <span style="font-size: 0.75rem; color: var(--amber); border: 1px solid rgba(245,158,11,0.3); padding: 2px 8px; border-radius: 8px; margin-left: 8px;">Preview — API still evolving</span></p>
         </div>
     </div>
 
@@ -1203,6 +1237,7 @@
 
         <div class="diagram" id="unstructuredDemo">
             <span class="diagram-label label-problem">The problem</span>
+            <button class="replay-btn" data-replay="unstructured" title="Replay animation">&#8635;</button>
             <div class="task-diagram">
                 <div class="task-parent task-parent-unstructured">
                     main()
@@ -1234,10 +1269,11 @@
 
     <div class="scene" data-scene>
         <h3>The New Way: StructuredTaskScope</h3>
-        <p style="max-width: 680px;"><code>StructuredTaskScope</code> treats concurrent tasks like a structured block: all forked tasks must complete before the scope exits. If one fails, the others are <strong>automatically cancelled</strong>. Errors propagate to the parent. No leaks. No orphans. The concurrent equivalent of a try-with-resources.</p>
+        <p style="max-width: 680px;"><code>StructuredTaskScope</code> treats concurrent tasks like a structured block: all forked tasks must complete before the scope exits. You choose a <code>Joiner</code> policy — like <code>awaitAllSuccessfulOrThrow()</code> — and if one task fails, the others are <strong>automatically cancelled</strong>. Errors propagate to the parent. No leaks. No orphans. The concurrent equivalent of a try-with-resources.</p>
 
         <div class="diagram" id="structuredDemo" style="position: relative;">
             <span class="diagram-label label-solution">The solution</span>
+            <button class="replay-btn" data-replay="structured" title="Replay animation">&#8635;</button>
             <svg class="tree-svg" id="treeSvg" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
                 <line class="tree-line" id="treeLine1" x1="400" y1="45" x2="250" y2="140" />
                 <line class="tree-line" id="treeLine2" x1="400" y1="45" x2="400" y2="140" />
@@ -1291,14 +1327,14 @@
             </div>
             <div class="code-block">
                 <span class="code-label code-label-new">After &mdash; structured</span>
-<pre><span class="kw">try</span> (<span class="kw">var</span> scope = <span class="kw">new</span> <span class="type">StructuredTaskScope</span>.<span class="fn">ShutdownOnFailure</span>()) {
+<pre><span class="kw">try</span> (<span class="kw">var</span> scope = <span class="type">StructuredTaskScope</span>.<span class="fn">open</span>(
+        <span class="type">Joiner</span>.<span class="fn">awaitAllSuccessfulOrThrow</span>())) {
 
-    <span class="type">Subtask</span>&lt;User&gt;    user = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchUser</span>());
-    <span class="type">Subtask</span>&lt;Order&gt;   order = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchOrder</span>());
-    <span class="type">Subtask</span>&lt;Invoice&gt; invoice = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchInvoice</span>());
+    <span class="kw">var</span> user    = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchUser</span>());
+    <span class="kw">var</span> order   = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchOrder</span>());
+    <span class="kw">var</span> invoice = scope.<span class="fn">fork</span>(() -> <span class="fn">fetchInvoice</span>());
 
-    scope.<span class="fn">join</span>();            <span class="cm">// waits for all</span>
-    scope.<span class="fn">throwIfFailed</span>();   <span class="cm">// propagates first error</span>
+    scope.<span class="fn">join</span>();  <span class="cm">// waits for all, throws on failure</span>
     <span class="cm">// if fetchOrder() fails →</span>
     <span class="cm">// fetchUser() + fetchInvoice() auto-cancelled</span>
     <span class="cm">// scope exits, everything cleaned up</span>
@@ -1319,7 +1355,7 @@
         <div class="act-header">
             <span class="act-number" style="color: var(--green); border-color: rgba(34, 197, 94, 0.3);">Spring Boot</span>
             <h2>This isn't theoretical</h2>
-            <p class="subtitle">If you use Spring Boot, virtual threads are already part of your stack.</p>
+            <p class="subtitle">If you use Spring Boot, virtual threads are one line of config away.</p>
         </div>
     </div>
 
@@ -1327,28 +1363,28 @@
         <div class="spring-callout">
             <div class="spring-logo">&#9881;</div>
             <h3>Spring Boot & Virtual Threads</h3>
-            <p style="margin-top: 12px; max-width: 680px;">Spring Boot adopted virtual threads early. Every request handler, every <code>@Async</code> method, every scheduled task — all running on virtual threads. Your existing blocking code (JPA queries, REST calls, JDBC) works as-is, but now scales to thousands of concurrent requests without reactive complexity.</p>
+            <p style="margin-top: 12px; max-width: 680px;">Spring Boot adopted virtual threads early. One property flips every request handler, every <code>@Async</code> method, every scheduled task to virtual threads. Your existing blocking code (JPA queries, REST calls, JDBC) works as-is, but now scales to thousands of concurrent requests without reactive complexity.</p>
 
             <div class="spring-versions">
                 <div class="spring-version">
-                    <span class="version-label" style="color: var(--amber);">Spring Boot 3.2 (2023)</span>
+                    <span class="version-label" style="color: var(--amber);">Spring Boot 3.2+ (2023)</span>
 <pre><span class="cm"># application.properties</span>
 <span class="fn">spring.threads.virtual.enabled</span>=<span class="str">true</span>
 
-<span class="cm">// Opt-in: one line of config
+<span class="cm">// One line of config — that's it
 // Tomcat, Jetty, Undertow all supported
 // @Async uses virtual threads
 // All blocking I/O benefits immediately</span></pre>
                 </div>
                 <div class="spring-version">
-                    <span class="version-label" style="color: var(--green);">Spring Boot 4 (2025)</span>
-<pre><span class="cm"># No configuration needed</span>
+                    <span class="version-label" style="color: var(--green);">Spring Boot 4 (Nov 2025)</span>
+<pre><span class="cm"># application.properties</span>
+<span class="fn">spring.threads.virtual.enabled</span>=<span class="str">true</span>
 
-<span class="cm">// Virtual threads are the DEFAULT
-// Every request handler runs on a
-//   virtual thread automatically
-// Thread pool tuning? Gone.
-// Reactive just for throughput? Gone.</span></pre>
+<span class="cm">// Same opt-in property, still one line
+// Java 17+ baseline, 21+ recommended
+// JDK HttpClient auto-uses virtual threads
+// Broader ecosystem ready (JEP 491)</span></pre>
                 </div>
             </div>
         </div>
@@ -1436,15 +1472,15 @@
     <span class="kw">return</span> <span class="type">ScopedValue</span>.<span class="fn">where</span>(CURRENT_USER, user).<span class="fn">call</span>(() -> {
 
         <span class="cm">// Structured Concurrency: fork subtasks, auto-cancel on failure</span>
-        <span class="kw">try</span> (<span class="kw">var</span> scope = <span class="kw">new</span> <span class="type">StructuredTaskScope</span>.<span class="fn">ShutdownOnFailure</span>()) {
+        <span class="kw">try</span> (<span class="kw">var</span> scope = <span class="type">StructuredTaskScope</span>.<span class="fn">open</span>(
+                <span class="type">Joiner</span>.<span class="fn">awaitAllSuccessfulOrThrow</span>())) {
 
             <span class="cm">// Virtual Threads: each fork runs on its own virtual thread</span>
             <span class="kw">var</span> orders   = scope.<span class="fn">fork</span>(() -> orderService.<span class="fn">forUser</span>(CURRENT_USER.<span class="fn">get</span>()));
             <span class="kw">var</span> invoices = scope.<span class="fn">fork</span>(() -> invoiceService.<span class="fn">forUser</span>(CURRENT_USER.<span class="fn">get</span>()));
             <span class="kw">var</span> prefs    = scope.<span class="fn">fork</span>(() -> prefService.<span class="fn">forUser</span>(CURRENT_USER.<span class="fn">get</span>()));
 
-            scope.<span class="fn">join</span>();
-            scope.<span class="fn">throwIfFailed</span>();
+            scope.<span class="fn">join</span>();  <span class="cm">// waits for all, throws on failure</span>
 
             <span class="kw">return new</span> <span class="type">Dashboard</span>(orders.<span class="fn">get</span>(), invoices.<span class="fn">get</span>(), prefs.<span class="fn">get</span>());
         }
@@ -1488,8 +1524,8 @@
                         </tr>
                         <tr>
                             <td style="color: var(--text-bright); font-weight: 600;">Spring Boot</td>
-                            <td>Opt-in (3.2)</td>
-                            <td style="color: var(--green);">Default (4.0)</td>
+                            <td>Not supported (&lt;3.2)</td>
+                            <td style="color: var(--cyan);">Opt-in since 3.2, one line of config</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1518,12 +1554,16 @@
                     <span class="tl-text">Virtual threads: opt-in via config</span>
                 </div>
                 <div class="timeline-item">
-                    <span class="tl-date">Java 23+ (2024-2025)</span>
-                    <span class="tl-text">Scoped Values &amp; Structured Concurrency — continued preview</span>
+                    <span class="tl-date">Java 24 (Mar 2025)</span>
+                    <span class="tl-text">Virtual threads no longer pin on <code>synchronized</code> (JEP 491)</span>
                 </div>
                 <div class="timeline-item">
-                    <span class="tl-date" style="color: var(--green);">Spring Boot 4 (2025)</span>
-                    <span class="tl-text"><strong>Virtual threads on by default</strong></span>
+                    <span class="tl-date" style="color: var(--green);">Java 25 LTS (Sep 2025)</span>
+                    <span class="tl-text"><strong>Scoped Values finalized</strong> (JEP 506) &mdash; Structured Concurrency still preview (JEP 505)</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="tl-date">Spring Boot 4 (Nov 2025)</span>
+                    <span class="tl-text">Java 17+ baseline, virtual threads still opt-in</span>
                 </div>
             </div>
         </div>
@@ -1532,19 +1572,63 @@
             <div style="text-align: center; padding: 80px 0 40px; max-width: 600px; margin: 0 auto;">
                 <p style="font-size: 1.3rem; color: var(--text-bright); line-height: 1.6;">Write simple, blocking code.<br>Let the JVM handle the concurrency.<br>That's the revolution.</p>
                 <p style="margin-top: 32px; font-size: 0.85rem; color: var(--text-dim);">
-                    JEP 444 (Virtual Threads) &middot; JEP 481 (Scoped Values) &middot; JEP 480 (Structured Concurrency)
+                    JEP 444 (Virtual Threads) &middot; JEP 506 (Scoped Values) &middot; JEP 505 (Structured Concurrency, preview)
                 </p>
             </div>
         </div>
     </div>
 </section>
 
-<div style="height: 80px;"></div>
+<!-- ═══════════════ SOURCES ═══════════════ -->
+<div class="container" style="padding: 60px 0 120px;">
+    <div class="scene" data-scene>
+        <div class="section-divider" style="margin-bottom: 48px;"></div>
+        <h3 style="color: var(--text-dim); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;">Sources & Further Reading</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; font-size: 0.85rem; line-height: 1.8;">
+            <div>
+                <h4 style="color: var(--cyan); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;">JEPs (OpenJDK)</h4>
+                <ul style="list-style: none; color: var(--text);">
+                    <li><a href="https://openjdk.org/jeps/444" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">JEP 444</a> — Virtual Threads (final, Java 21)</li>
+                    <li><a href="https://openjdk.org/jeps/491" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">JEP 491</a> — Synchronize Virtual Threads without Pinning (Java 24)</li>
+                    <li><a href="https://openjdk.org/jeps/506" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">JEP 506</a> — Scoped Values (final, Java 25)</li>
+                    <li><a href="https://openjdk.org/jeps/505" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">JEP 505</a> — Structured Concurrency (fifth preview, Java 25)</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="color: var(--green); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;">Spring Boot</h4>
+                <ul style="list-style: none; color: var(--text);">
+                    <li><a href="https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.2-Release-Notes" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">Spring Boot 3.2 Release Notes</a> — virtual thread support (opt-in)</li>
+                    <li><a href="https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Release-Notes" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">Spring Boot 4.0 Release Notes</a></li>
+                </ul>
+                <h4 style="color: var(--purple); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 20px 0 12px;">Articles</h4>
+                <ul style="list-style: none; color: var(--text);">
+                    <li><a href="https://inside.java/tag/loom" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">Inside Java — Project Loom</a></li>
+                    <li><a href="https://www.baeldung.com/spring-boot-4-spring-framework-7" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">Baeldung — Spring Boot 4 & Spring Framework 7</a></li>
+                    <li><a href="https://nipafx.dev/inside-java-newscast-91/" style="color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border);">Inside Java Newscast #91</a> — Structured Concurrency revamp in JDK 25</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
 (function() {
     'use strict';
+
+    // ── Timer Management ──
+    // Each animation tracks its pending timeouts so replay can cancel them
+    const timers = {};
+    function schedule(group, fn, delay) {
+        if (!timers[group]) timers[group] = [];
+        timers[group].push(setTimeout(fn, delay));
+    }
+    function clearTimers(group) {
+        if (timers[group]) {
+            timers[group].forEach(id => clearTimeout(id));
+            timers[group] = [];
+        }
+    }
 
     // ── Progress Bar ──
     const progressBar = document.getElementById('progressBar');
@@ -1584,8 +1668,7 @@
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
-                const sceneId = entry.target.closest('[id]')?.id;
-                // Trigger scene-specific animations
+                // Trigger scene-specific animations (first play only via scroll)
                 if (entry.target.querySelector('#platformThreads')) animatePlatformThreads();
                 if (entry.target.querySelector('#vtCloud')) animateVirtualThreads();
                 if (entry.target.querySelector('#tlChildren')) animateThreadLocal();
@@ -1602,13 +1685,30 @@
         sceneObserver.observe(scene);
     });
 
+    // ── Replay Buttons ──
+    const replayHandlers = {
+        platformThreads: animatePlatformThreads,
+        virtualThreads: animateVirtualThreads,
+        threadLocal: animateThreadLocal,
+        scopedValue: animateScopedValue,
+        unstructured: animateUnstructured,
+        structured: animateStructured,
+    };
+
+    document.querySelectorAll('.replay-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const key = btn.dataset.replay;
+            if (replayHandlers[key]) replayHandlers[key]();
+        });
+    });
+
     // ── Animated Counter ──
     function animateCounter(element, from, to, duration) {
         const start = performance.now();
         function update(now) {
             const elapsed = now - start;
             const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
             const current = Math.round(from + (to - from) * eased);
             element.textContent = current.toLocaleString();
             if (progress < 1) requestAnimationFrame(update);
@@ -1617,197 +1717,220 @@
     }
 
     // ── Act 1: Platform Threads Animation ──
-    let ptAnimated = false;
+    function resetPlatformThreads() {
+        clearTimers('pt');
+        document.querySelectorAll('#platformThreads .thread-platform').forEach(t => {
+            t.classList.remove('blocked');
+            t.querySelector('.thread-status').textContent = 'Processing';
+        });
+        document.querySelectorAll('#requestQueue .request-dot').forEach(d => d.classList.remove('visible'));
+        document.getElementById('queueLabel').classList.remove('visible');
+    }
+
     function animatePlatformThreads() {
-        if (ptAnimated) return;
-        ptAnimated = true;
+        resetPlatformThreads();
         const threads = document.querySelectorAll('#platformThreads .thread-platform');
         const dots = document.querySelectorAll('#requestQueue .request-dot');
         const label = document.getElementById('queueLabel');
 
-        // Block threads after delays
         threads.forEach(thread => {
             const delay = parseInt(thread.dataset.blockDelay) || 1000;
-            setTimeout(() => {
+            schedule('pt', () => {
                 thread.classList.add('blocked');
                 thread.querySelector('.thread-status').textContent = 'Blocked on I/O';
             }, delay);
         });
 
-        // Show queue dots
         dots.forEach((dot, i) => {
-            setTimeout(() => dot.classList.add('visible'), 1500 + i * 150);
+            schedule('pt', () => dot.classList.add('visible'), 1500 + i * 150);
         });
 
-        // Show label
-        setTimeout(() => label.classList.add('visible'), 1500 + dots.length * 150);
+        schedule('pt', () => label.classList.add('visible'), 1500 + dots.length * 150);
     }
 
     // ── Act 1: Virtual Threads Animation ──
-    let vtAnimated = false;
+    function resetVirtualThreads() {
+        clearTimers('vt');
+        document.querySelectorAll('#vtCloud .vt-dot').forEach(d => {
+            d.classList.remove('visible', 'animate');
+        });
+        document.getElementById('vtConnector').classList.remove('visible');
+        document.querySelectorAll('#vtStats [data-count-to]').forEach(c => {
+            c.textContent = '0';
+        });
+    }
+
     function animateVirtualThreads() {
-        if (vtAnimated) return;
-        vtAnimated = true;
+        resetVirtualThreads();
         const dots = document.querySelectorAll('#vtCloud .vt-dot');
         const connector = document.getElementById('vtConnector');
 
-        // Show virtual thread dots
         dots.forEach((dot, i) => {
-            setTimeout(() => {
+            schedule('vt', () => {
                 dot.classList.add('visible');
-                // Start float animation after appearing
-                setTimeout(() => dot.classList.add('animate'), 300);
+                schedule('vt', () => dot.classList.add('animate'), 300);
             }, i * 80);
         });
 
-        // Show connector
-        setTimeout(() => connector.classList.add('visible'), dots.length * 80 + 200);
+        schedule('vt', () => connector.classList.add('visible'), dots.length * 80 + 200);
 
-        // Animate counters
         const counters = document.querySelectorAll('#vtStats [data-count-to]');
         counters.forEach(counter => {
             const to = parseInt(counter.dataset.countTo);
             const from = parseInt(counter.dataset.countFrom);
-            setTimeout(() => animateCounter(counter, from, to, 1500), dots.length * 80 + 500);
+            schedule('vt', () => animateCounter(counter, from, to, 1500), dots.length * 80 + 500);
         });
     }
 
     // ── Act 2: ThreadLocal Animation ──
-    let tlAnimated = false;
+    function resetThreadLocal() {
+        clearTimers('tl');
+        document.getElementById('tlConnector').classList.remove('visible');
+        document.querySelectorAll('#tlChildren .scope-child').forEach(c => {
+            c.classList.remove('visible', 'mutated');
+            const cb = c.querySelector('.copy-badge');
+            if (cb) cb.classList.remove('visible');
+            const mb = c.querySelector('.mutate-badge');
+            if (mb) mb.classList.remove('visible');
+        });
+        document.getElementById('mutatedValue').textContent = '"Alice"';
+        document.getElementById('tlWarning').classList.remove('visible');
+    }
+
     function animateThreadLocal() {
-        if (tlAnimated) return;
-        tlAnimated = true;
+        resetThreadLocal();
         const connector = document.getElementById('tlConnector');
         const children = document.querySelectorAll('#tlChildren .scope-child');
-        const warning = document.getElementById('tlWarning');
         const mutatedChild = document.getElementById('mutatedChild');
         const mutatedValue = document.getElementById('mutatedValue');
 
-        // Show connector
-        setTimeout(() => connector.classList.add('visible'), 300);
+        schedule('tl', () => connector.classList.add('visible'), 300);
 
-        // Show children (copies)
         children.forEach(child => {
             const delay = parseFloat(child.style.transitionDelay) * 1000 + 500;
-            setTimeout(() => {
+            schedule('tl', () => {
                 child.classList.add('visible');
-                // Show copy badges
                 const badge = child.querySelector('.copy-badge');
-                if (badge) setTimeout(() => badge.classList.add('visible'), 300);
+                if (badge) schedule('tl', () => badge.classList.add('visible'), 300);
             }, delay);
         });
 
-        // Mutate child-3
-        setTimeout(() => {
+        schedule('tl', () => {
             mutatedChild.classList.add('mutated');
             mutatedValue.textContent = '"Bob"';
             const mutateBadge = mutatedChild.querySelector('.mutate-badge');
             if (mutateBadge) mutateBadge.classList.add('visible');
         }, 2200);
 
-        // Show warning
-        setTimeout(() => warning.classList.add('visible'), 2800);
+        schedule('tl', () => document.getElementById('tlWarning').classList.add('visible'), 2800);
     }
 
     // ── Act 2: ScopedValue Animation ──
-    let svAnimated = false;
+    function resetScopedValue() {
+        clearTimers('sv');
+        document.getElementById('scopeBoundary').classList.remove('visible');
+        document.getElementById('svConnector').classList.remove('visible');
+        document.querySelectorAll('#svChildren .scope-child').forEach(c => c.classList.remove('visible'));
+        document.getElementById('svImmutable').classList.remove('visible');
+    }
+
     function animateScopedValue() {
-        if (svAnimated) return;
-        svAnimated = true;
+        resetScopedValue();
         const boundary = document.getElementById('scopeBoundary');
         const connector = document.getElementById('svConnector');
         const children = document.querySelectorAll('#svChildren .scope-child');
-        const immutable = document.getElementById('svImmutable');
 
-        // Show boundary
-        setTimeout(() => boundary.classList.add('visible'), 200);
+        schedule('sv', () => boundary.classList.add('visible'), 200);
+        schedule('sv', () => connector.classList.add('visible'), 600);
 
-        // Show connector
-        setTimeout(() => connector.classList.add('visible'), 600);
-
-        // Show children
         children.forEach(child => {
             const delay = parseFloat(child.style.transitionDelay) * 1000 + 600;
-            setTimeout(() => child.classList.add('visible'), delay);
+            schedule('sv', () => child.classList.add('visible'), delay);
         });
 
-        // Show immutable note
-        setTimeout(() => immutable.classList.add('visible'), 2000);
+        schedule('sv', () => document.getElementById('svImmutable').classList.add('visible'), 2000);
     }
 
     // ── Act 3: Unstructured Concurrency Animation ──
-    let usAnimated = false;
+    function resetUnstructured() {
+        clearTimers('us');
+        ['uTask1', 'uTask2', 'uTask3'].forEach(id => {
+            const el = document.getElementById(id);
+            el.classList.remove('failed', 'leaked', 'drifting');
+            el.querySelector('.task-status-badge').classList.remove('visible');
+        });
+        document.getElementById('parentQuestion').classList.remove('visible');
+        document.getElementById('unstructuredWarning').classList.remove('visible');
+    }
+
     function animateUnstructured() {
-        if (usAnimated) return;
-        usAnimated = true;
+        resetUnstructured();
+        const task1 = document.getElementById('uTask1');
         const task2 = document.getElementById('uTask2');
         const task3 = document.getElementById('uTask3');
-        const question = document.getElementById('parentQuestion');
-        const warning = document.getElementById('unstructuredWarning');
 
-        // Task B fails
-        setTimeout(() => {
+        schedule('us', () => {
             task2.classList.add('failed');
             task2.querySelector('.task-status-badge').classList.add('visible');
         }, 1000);
 
-        // Parent doesn't notice
-        setTimeout(() => question.classList.add('visible'), 1500);
+        schedule('us', () => document.getElementById('parentQuestion').classList.add('visible'), 1500);
 
-        // Task C leaks
-        setTimeout(() => {
+        schedule('us', () => {
             task3.classList.add('leaked');
             task3.classList.add('drifting');
             task3.querySelector('.task-status-badge').classList.add('visible');
         }, 2000);
 
-        // Task A finishes (nobody cares)
-        setTimeout(() => {
-            task2.querySelector('.task-status-badge').classList.add('visible');
-            document.getElementById('uTask1').querySelector('.task-status-badge').classList.add('visible');
+        schedule('us', () => {
+            task1.querySelector('.task-status-badge').classList.add('visible');
         }, 2500);
 
-        // Warning
-        setTimeout(() => warning.classList.add('visible'), 2800);
+        schedule('us', () => document.getElementById('unstructuredWarning').classList.add('visible'), 2800);
     }
 
     // ── Act 3: Structured Concurrency Animation ──
-    let scAnimated = false;
+    function resetStructured() {
+        clearTimers('sc');
+        document.querySelectorAll('#treeSvg .tree-line').forEach(l => {
+            l.classList.remove('visible', 'error');
+        });
+        ['sTask1', 'sTask2', 'sTask3'].forEach(id => {
+            const el = document.getElementById(id);
+            el.classList.remove('failed', 'cancelled');
+            el.querySelector('.task-status-badge').classList.remove('visible');
+        });
+        document.getElementById('structuredInfo').classList.remove('visible');
+    }
+
     function animateStructured() {
-        if (scAnimated) return;
-        scAnimated = true;
+        resetStructured();
         const lines = document.querySelectorAll('#treeSvg .tree-line');
+        const task1 = document.getElementById('sTask1');
         const task2 = document.getElementById('sTask2');
         const task3 = document.getElementById('sTask3');
-        const task1 = document.getElementById('sTask1');
-        const info = document.getElementById('structuredInfo');
 
-        // Draw tree lines
         lines.forEach((line, i) => {
-            setTimeout(() => line.classList.add('visible'), 300 + i * 200);
+            schedule('sc', () => line.classList.add('visible'), 300 + i * 200);
         });
 
-        // Task B fails
-        setTimeout(() => {
+        schedule('sc', () => {
             task2.classList.add('failed');
             task2.querySelector('.task-status-badge').classList.add('visible');
-            lines[1].classList.add('error'); // middle line turns red
+            lines[1].classList.add('error');
         }, 1500);
 
-        // Propagation: error travels up, then cancels C
-        setTimeout(() => {
-            lines[2].classList.add('error'); // right line turns red
+        schedule('sc', () => {
+            lines[2].classList.add('error');
             task3.classList.add('cancelled');
             task3.querySelector('.task-status-badge').classList.add('visible');
         }, 2000);
 
-        // Task A completes
-        setTimeout(() => {
+        schedule('sc', () => {
             task1.querySelector('.task-status-badge').classList.add('visible');
         }, 2200);
 
-        // Info message
-        setTimeout(() => info.classList.add('visible'), 2500);
+        schedule('sc', () => document.getElementById('structuredInfo').classList.add('visible'), 2500);
     }
 
     // ── Synergy Cards ──
