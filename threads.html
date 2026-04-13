@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rethinking Threads — Java 21+ & Spring Boot</title>
+    <title>Project Loom — Java 21+ & Spring Boot</title>
     <style>
         /* ───────────────── Variables ───────────────── */
         :root {
@@ -876,6 +876,32 @@
             .diagram { padding: 24px 16px; }
         }
 
+        /* ───────────────── Back Link ───────────────── */
+        .back-link {
+            position: fixed;
+            top: 16px;
+            left: 24px;
+            z-index: 999;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .back-link:hover { color: var(--cyan); }
+        .back-link .arrow-left {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-left: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+        }
+
         /* ───────────────── Conclusion Summary ───────────────── */
         .summary-table {
             width: 100%;
@@ -905,6 +931,11 @@
 <div class="bg-grid"></div>
 <div class="progress-bar" id="progressBar"></div>
 
+<a href="index.html" class="back-link">
+    <span class="arrow-left"></span>
+    Back to overview
+</a>
+
 <nav class="nav-dots" id="navDots">
     <div class="nav-dot active" data-target="hero" title="Intro"></div>
     <div class="nav-dot" data-target="context" title="Context"></div>
@@ -919,7 +950,7 @@
 <section id="hero">
     <div class="hero-content">
         <p class="eyebrow">Java 21+ &middot; Project Loom &middot; Spring Boot</p>
-        <h1>Rethinking<br><span>Threads</span></h1>
+        <h1>Project<br><span>Loom</span></h1>
         <p class="subtitle">Virtual Threads, Scoped Values, and Structured Concurrency — what they solve, how they work, and what changes in practice.</p>
         <div class="scroll-hint">
             <span>Scroll to explore</span><br>

@@ -397,7 +397,6 @@
     <div class="nav-dot" data-target="new-way" title="New Way"></div>
     <div class="nav-dot" data-target="configuration" title="Configuration"></div>
     <div class="nav-dot" data-target="strategies" title="Strategies"></div>
-    <div class="nav-dot" data-target="client-support" title="Client Support"></div>
     <div class="nav-dot" data-target="comparison" title="Comparison"></div>
     <div class="nav-dot" data-target="sources-section" title="Sources"></div>
 </nav>
@@ -567,44 +566,6 @@
     </div>
 </section>
 
-<!-- ═══════════════ CLIENT SUPPORT ═══════════════ -->
-<section id="client-support">
-    <div class="container">
-        <div class="scene" data-scene>
-            <p class="eyebrow" style="color: var(--green);">Client side</p>
-            <h2>RestClient, WebClient &amp; HTTP interfaces</h2>
-
-            <div class="callout">
-                <h3>Built-in client support</h3>
-                <ul>
-                    <li><strong>ApiVersionInserter</strong> &mdash; a shared component used by <code>RestClient</code>, <code>WebClient</code>, and HTTP interface clients to automatically insert the version into outgoing requests, matching whatever strategy the server uses.</li>
-                    <li><strong>HTTP interface clients</strong> &mdash; the <code>@HttpExchange</code>-based declarative clients pick up version configuration automatically. No manual header or path manipulation.</li>
-                    <li><strong>Deprecation handling (RFC 9745)</strong> &mdash; Spring can signal that an API version is deprecated using the standard <code>Deprecation</code> HTTP header, so clients get a machine-readable deprecation notice.</li>
-                </ul>
-            </div>
-
-            <div class="code-block" style="margin-top: 24px;">
-                <span class="code-label code-label-config">ApiVersionInserter with RestClient</span>
-                <pre>
-<span class="type">ApiVersionInserter</span> inserter = <span class="type">ApiVersionInserter</span>
-    .<span class="fn">useHeader</span>(<span class="str">"X-API-Version"</span>);
-
-<span class="type">RestClient</span> client = <span class="type">RestClient</span>.<span class="fn">builder</span>()
-    .<span class="fn">baseUrl</span>(<span class="str">"https://api.example.com"</span>)
-    .<span class="fn">apiVersionInserter</span>(inserter)
-    .<span class="fn">build</span>();
-
-<span class="cm">// Requests automatically include X-API-Version header</span>
-<span class="type">List</span>&lt;<span class="type">User</span>&gt; users = client.<span class="fn">get</span>()
-    .<span class="fn">uri</span>(<span class="str">"/users"</span>)
-    .<span class="fn">apiVersion</span>(<span class="str">"2.0"</span>)
-    .<span class="fn">retrieve</span>()
-    .<span class="fn">body</span>(<span class="kw">new</span> <span class="type">ParameterizedTypeReference</span>&lt;&gt;() {});</pre>
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- ═══════════════ COMPARISON ═══════════════ -->
 <section id="comparison">
     <div class="container">
@@ -730,7 +691,7 @@
     const navDots = document.querySelectorAll('.nav-dot');
     const sectionIds = [
         'hero', 'context', 'old-way', 'new-way',
-        'configuration', 'strategies', 'client-support',
+        'configuration', 'strategies',
         'comparison', 'sources-section'
     ];
 
