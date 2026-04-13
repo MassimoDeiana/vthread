@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Thread Revolution — Java 21+ & Spring Boot</title>
+    <title>Rethinking Threads — Java 21+ & Spring Boot</title>
     <style>
         /* ───────────────── Variables ───────────────── */
         :root {
@@ -919,8 +919,8 @@
 <section id="hero">
     <div class="hero-content">
         <p class="eyebrow">Java 21+ &middot; Project Loom &middot; Spring Boot</p>
-        <h1>The Thread<br><span>Revolution</span></h1>
-        <p class="subtitle">Virtual Threads, Scoped Values, and Structured Concurrency — three primitives that fundamentally change how Java handles concurrent work.</p>
+        <h1>Rethinking<br><span>Threads</span></h1>
+        <p class="subtitle">Virtual Threads, Scoped Values, and Structured Concurrency — what they solve, how they work, and what changes in practice.</p>
         <div class="scroll-hint">
             <span>Scroll to explore</span><br>
             <div class="arrow"></div>
@@ -933,11 +933,11 @@
     <div class="container">
         <div class="scene" data-scene>
             <p class="eyebrow" style="color: var(--text-dim);">The backstory</p>
-            <h2>25 years of heavyweight threads</h2>
+            <h2>The problem with platform threads</h2>
             <div class="narrative" style="margin-top: 24px;">
-                <p>Since Java 1.0, every <code>Thread</code> has been a thin wrapper around an <strong>OS thread</strong>. Each one allocates ~1 MB of stack memory and requires a kernel-level context switch. That was fine in 1998 when a server handled dozens of requests. It's a problem now, when a single microservice might need to handle <strong>tens of thousands of concurrent connections</strong>.</p>
-                <p style="margin-top: 16px;">The workarounds — thread pools, reactive programming, async/await patterns — add complexity without solving the root problem: <strong>platform threads are too expensive to represent every unit of concurrent work</strong>.</p>
-                <p style="margin-top: 16px;">Project Loom, delivered in Java 21, introduces three new primitives that fix this from the ground up.</p>
+                <p>Since Java 1.0, every <code>Thread</code> has been a thin wrapper around an <strong>OS thread</strong>. Each one allocates ~1 MB of stack memory. To keep a CPU 100% busy with typical I/O-bound work, you'd need roughly a million concurrent threads — but a million platform threads would require ~2 TB of memory. In practice, you hit a wall at a few thousand.</p>
+                <p style="margin-top: 16px;">The workaround has been reactive programming: split your code into small lambdas, wire them together with an async framework, never block a thread. It works, but you lose readable stack traces, simple debugging, and straightforward code. Maintenance cost goes up.</p>
+                <p style="margin-top: 16px;">Project Loom takes the other path: instead of changing how you write code, it makes threads cheap enough that blocking is fine again.</p>
             </div>
         </div>
     </div>
@@ -957,7 +957,7 @@
 
     <div class="scene" data-scene>
         <h3>The Old Way: Platform Thread Pool</h3>
-        <p style="max-width: 680px;">Your server has a fixed pool of platform threads (typically 200). Each incoming request claims one. When a thread blocks on I/O — a database query, an HTTP call — it sits idle. The thread is stuck, and so is every request waiting behind it.</p>
+        <p style="max-width: 680px;">A typical database call takes ~100ms, but the actual CPU work (building the request, parsing the response) is measured in nanoseconds. That means a thread spends <strong>99.99% of its time doing nothing</strong> — just waiting for the network. A platform thread is a thin wrapper around an OS thread, each one costs ~1MB of memory, so you can only afford a few hundred of them. When they're all blocked on I/O, incoming requests queue up — even though the CPU is nearly idle.</p>
 
         <div class="diagram" id="platformThreadDemo">
             <span class="diagram-label label-problem">The problem</span>
@@ -1004,7 +1004,8 @@
 
     <div class="scene" data-scene>
         <h3>The New Way: Virtual Threads</h3>
-        <p style="max-width: 680px;">Virtual threads are managed by the JVM, not the OS. They're <strong>extremely cheap</strong> — you can create millions of them. When a virtual thread blocks on I/O, it <strong>unmounts</strong> from its carrier thread. The carrier immediately picks up another virtual thread. No thread ever sits idle.</p>
+        <p style="max-width: 680px;">Under the hood, the JVM still uses OS threads — it has to. These are called <strong>carrier threads</strong>, and there's a small pool of them (roughly one per CPU core). A virtual thread runs <em>on top of</em> a carrier thread. When it hits a blocking I/O call (a database query, an HTTP request), instead of blocking the carrier, the virtual thread <strong>saves its stack to heap memory and steps off</strong>. The carrier is immediately free to run another virtual thread. When the I/O response arrives, the virtual thread gets mounted back onto any available carrier and continues where it left off.</p>
+        <p style="max-width: 680px; margin-top: 12px;">Because they're just a stack on the heap (~1 KB), you can create <strong>millions</strong> of them. No pooling needed — create one per task, let it die when it's done.</p>
 
         <div class="diagram" id="virtualThreadDemo">
             <span class="diagram-label label-solution">The solution</span>
@@ -1098,6 +1099,7 @@
             </div>
         </div>
         <p style="font-size: 0.9rem; color: var(--text-dim); max-width: 680px;">The only change: <code>newFixedThreadPool(200)</code> becomes <code>newVirtualThreadPerTaskExecutor()</code>. No pool size to tune. No thread starvation. One virtual thread per task, as many as you need.</p>
+        <p style="font-size: 0.9rem; color: var(--amber); max-width: 680px; margin-top: 12px;">Important: virtual threads help with <strong>I/O-bound</strong> work (network calls, database queries). For pure CPU-bound computation (number crunching, parallel streams), platform threads are still the right choice — there's nothing to unmount from.</p>
     </div>
 
     <div class="section-divider"></div>
@@ -1354,7 +1356,7 @@
     <div class="scene" data-scene>
         <div class="act-header">
             <span class="act-number" style="color: var(--green); border-color: rgba(34, 197, 94, 0.3);">Spring Boot</span>
-            <h2>This isn't theoretical</h2>
+            <h2>In practice: Spring Boot</h2>
             <p class="subtitle">If you use Spring Boot, virtual threads are one line of config away.</p>
         </div>
     </div>
@@ -1570,7 +1572,7 @@
 
         <div class="scene" data-scene>
             <div style="text-align: center; padding: 80px 0 40px; max-width: 600px; margin: 0 auto;">
-                <p style="font-size: 1.3rem; color: var(--text-bright); line-height: 1.6;">Write simple, blocking code.<br>Let the JVM handle the concurrency.<br>That's the revolution.</p>
+                <p style="font-size: 1.3rem; color: var(--text-bright); line-height: 1.6;">Write simple, blocking code.<br>Let the JVM handle the concurrency.</p>
                 <p style="margin-top: 32px; font-size: 0.85rem; color: var(--text-dim);">
                     JEP 444 (Virtual Threads) &middot; JEP 506 (Scoped Values) &middot; JEP 505 (Structured Concurrency, preview)
                 </p>
