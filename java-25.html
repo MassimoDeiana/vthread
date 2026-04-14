@@ -243,7 +243,7 @@ map.<span class="fn">forEach</span>((_, value) ->
     <div class="feature" data-scene>
         <div class="feature-header">
             <h2>Flexible Constructor Bodies</h2>
-            <span class="feature-badge badge-25">Java 25 &middot; JEP 495</span>
+            <span class="feature-badge badge-25">Java 25 &middot; JEP 513</span>
         </div>
         <p>You can now write statements <strong>before</strong> <code>super()</code> or <code>this()</code>. Validate arguments, compute values, initialize fields — all before calling the parent constructor. No more awkward static helper methods just to work around the old restriction.</p>
         <div class="code-comparison">
@@ -312,7 +312,7 @@ map.<span class="fn">forEach</span>((_, value) ->
     <div class="feature" data-scene>
         <div class="feature-header">
             <h2>Module Import Declarations</h2>
-            <span class="feature-badge badge-25">Java 25 &middot; JEP 502</span>
+            <span class="feature-badge badge-25">Java 25 &middot; JEP 511</span>
         </div>
         <p>Import an entire module with a single statement. All public types from all packages exported by the module become available. Reduces boilerplate in files that use many types from the same module.</p>
         <div class="code-comparison">
@@ -338,17 +338,6 @@ map.<span class="fn">forEach</span>((_, value) ->
 
     <div class="divider"></div>
 
-    <!-- ─── Security Manager Removed ─── -->
-    <div class="feature" data-scene>
-        <div class="feature-header">
-            <h2>Security Manager Permanently Disabled</h2>
-            <span class="feature-badge badge-warn">Java 24 &middot; JEP 486</span>
-        </div>
-        <p>The Security Manager has been permanently disabled and cannot be enabled at runtime. It was deprecated for removal in Java 17 and has now been fully shut off. If your application or any dependency relies on it, <strong>it will break silently on upgrade</strong>.</p>
-        <div class="warn-box">
-            <strong style="color: var(--red);">Upgrade heads-up:</strong> Check your dependencies. Some older libraries (particularly around RMI, JNDI, and custom classloaders) may have relied on Security Manager permissions. These will stop working without clear error messages.
-        </div>
-    </div>
 
     <!-- Footer -->
     <div class="footer">
